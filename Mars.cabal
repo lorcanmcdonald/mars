@@ -19,7 +19,7 @@ synopsis:            A repl for interacting with REST data sources
 -- description:         
 
 -- URL for the project homepage or repository.
-homepage:            http://lorcanmcdonald.com/Mars
+homepage:            https://github.com/lorcanmcdonald/mars
 
 -- The license under which the package is released.
 license:             BSD3
