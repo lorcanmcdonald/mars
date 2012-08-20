@@ -21,7 +21,7 @@ data CollectionValue = O Object | A Array
 -- |A data type representing the primitive commands available in the Mars
 -- repl
 data Command  = Get (Maybe URL)
-              | Cat (Maybe Query)
+              | Cat [Query]
               | Ls (Maybe Query)
               | Save Text.Text
               | Load Text.Text

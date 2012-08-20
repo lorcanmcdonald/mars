@@ -23,13 +23,13 @@ querySeparator :: Text.Text
 querySeparator = "/"
 
 run :: State -> Command -> IO State
-run s (Cat Nothing)           = indempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
-run s (Cat (Just q))           = indempotent s $
+run s (Cat [])           = indempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
+run s (Cat l)           = indempotent s $
                                      Prelude.putStrLn $
-                                     ByteString.unpack $ ByteString.intercalate "\n" formattedJSONText
+                                     ByteString.unpack $ ByteString.intercalate "\n" (concat $ map formattedJSONText l)
                             where
-                                formattedJSONText :: [ByteString.ByteString]
-                                formattedJSONText = map encodePretty $
+                                formattedJSONText :: Query -> [ByteString.ByteString]
+                                formattedJSONText q = map encodePretty $
                                      queryDoc (fromMaybe emptyObjectCollection (document s)) $
                                      prependToQuery (path s) q
 run s (Ls Nothing) = indempotent s $ printLs s $ path s
