@@ -42,4 +42,6 @@ eval' s input = case parser input of
                         print err
                         return s
             Right [] -> return s
-            Right (x:_) -> run s x
+            Right (x:_) -> do
+                        -- print x
+                        run s x

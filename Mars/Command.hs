@@ -26,8 +26,8 @@ initialState = State { url      = Nothing
 renderCommand :: Command -> Text.Text
 renderCommand (Get Nothing)  = Text.pack "get"
 renderCommand (Get (Just u)) = Text.append (Text.pack "get ") (Text.pack $ exportURL u)
-renderCommand (Cat Nothing)  = Text.pack "cat"
-renderCommand (Cat (Just a)) = Text.append (Text.pack "cat ") (renderQuery a)
+renderCommand (Cat [])  = Text.pack "cat"
+renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.concat $ map renderQuery l)
 renderCommand (Ls Nothing)   = Text.pack "ls"
 renderCommand (Ls (Just a))  = Text.append (Text.pack "ls ") (renderQuery a)
 renderCommand (Save f)       = Text.append (Text.pack "save ") f

@@ -1,6 +1,7 @@
 {-#LANGUAGE OverloadedStrings #-}
 module Mars.CommandParser where
 import Control.Monad
+import Data.Maybe
 import Data.Attoparsec (parseOnly)
 import Network.URL
 import Mars.Types
@@ -33,7 +34,7 @@ keyword = (do
             return Pwd)
         <|> try (do
             _ <- string "cat"
-            return $ Cat Nothing)
+            return $ Cat [])
         <|> try (do
             _ <- string "get"
             return $ Get Nothing)
@@ -50,8 +51,8 @@ keywordWithArg = try (do
         <|> try (do
             _ <- string "cat"
             _ <- spaces
-            q <- maybeQuery
-            return $ Cat q)
+            q <- query `sepBy` (string " ")
+            return $ Cat $ q)
         <|> try (do
             _ <- string "ls"
             _ <- spaces
@@ -112,12 +113,13 @@ queryItem = try (do
                 item <- many1 digit
                 return $ IndexedItem (read item))
             <|> try (do
-                item <- matchQuery
+                item <- namedItem
                 return $ NamedItem $ Text.pack item)
         <?> "queryItem"
-            where
-                matchQuery = many1 alphaNum
-
+namedItem = do
+            s <- many1 $ noneOf "/ "
+            return s
+        <?> "namedItem"
 filename = (do
         f <- wspaceSeparated -- Doesn't handle files with spaces of course...
         return $ Text.pack f)
