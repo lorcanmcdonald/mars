@@ -53,6 +53,7 @@ library
       Mars.Parser
       Mars.Types
   build-depends: HTTP
+             , http-conduit
              , QuickCheck
              , aeson
              , aeson-pretty
@@ -75,6 +76,7 @@ library
 executable mars
   main-is: Main.hs
   build-depends: HTTP
+             , http-conduit
              , QuickCheck
              , aeson
              , aeson-pretty
@@ -82,7 +84,6 @@ executable mars
              , base >=3 && < 5
              , bytestring
              , data-lens
-             , lenses
              , network
              , parsec
              , readline
@@ -104,7 +105,7 @@ Executable mars-tests
     ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
     Build-depends: QuickCheck
                   , HTTP
-                  , QuickCheck
+                  , http-conduit
                   , aeson
                   , aeson-pretty
                   , attoparsec

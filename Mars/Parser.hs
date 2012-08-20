@@ -6,9 +6,9 @@ import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
 import Data.Maybe
 import Network.HTTP
-import Network.URI (parseURI)
+import Network.URI (parseURI, uriToString)
 import Network.URL
-import Mars.Command 
+import Mars.Command
 import Mars.Instances ()
 import Mars.Types
 import System.IO
@@ -16,7 +16,7 @@ import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
-
+import qualified Network.HTTP.Conduit as Conduit
 
 -- | The character used to separate query items when entered on the commandline
 querySeparator :: Text.Text
@@ -84,11 +84,12 @@ getWithURL s inUrl = case parseURI $ exportURL inUrl of
                 Nothing -> do
                     hPutStrLn stderr "Invalid URL"
                     return s
-                Just u -> do 
-                    rsp  <- simpleHTTP (mkRequest GET u)
-                    body <- getResponseBody rsp
+                Just u -> do
+                    rsp <- Conduit.parseUrl $ show u
+                    rsp  <- Conduit.withManager $ Conduit.httpLbs $ rsp
+                    -- body <- getResponseBody rsp
                     return s { url = Just inUrl
-                             , document = decode $ ByteString.pack body 
+                             , document = decode $ Conduit.responseBody rsp
                              , path = Query []
                              }
 
