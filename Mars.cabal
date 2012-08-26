@@ -49,8 +49,8 @@ cabal-version:       >=1.8
 library
     exposed-modules:
       Mars.Command
-      Mars.CommandParser
       Mars.Parser
+      Mars.Eval
       Mars.Types
   build-depends: HTTP
              , http-conduit

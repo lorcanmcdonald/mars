@@ -1,6 +1,6 @@
 import Debug.Trace
 import Mars.Command
-import Mars.CommandParser
+import Mars.Parser
 import Mars.Parser ()
 import Mars.Types
 import Data.Aeson.Types

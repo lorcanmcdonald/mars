@@ -3,9 +3,9 @@ module Main
 where
 import Control.Monad
 import Mars.Command
-import Mars.Parser
+import Mars.Eval
 import Mars.Types
-import Mars.CommandParser
+import Mars.Parser
 import System.Console.Readline
 import System.IO
 import Data.Text.IO as TIO

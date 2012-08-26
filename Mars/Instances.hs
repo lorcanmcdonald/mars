@@ -6,7 +6,7 @@ import Control.Monad
 import Data.Aeson
 import Network.URL
 import Mars.Command
-import Mars.CommandParser
+import Mars.Parser
 import Mars.Types
 import Text.ParserCombinators.Parsec (parse)
 import qualified Data.ByteString.Lazy.Char8 as ByteString
