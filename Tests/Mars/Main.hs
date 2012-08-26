@@ -51,14 +51,3 @@ prop_modifyDoc_modifies doc q new = case modifyDoc doc q new of
                                                                    --  modification fails check to see if it
                                                                    --  should have failed
                                     Right updatedDoc -> queryDoc updatedDoc q == [new]
-
--- prop_comp_parsers :: Command -> Bool
--- prop_comp_parsers c = parseCommand' text
---     where
---         text = renderCommand c
--- 
--- parseCommand' :: Text.Text -> Bool
--- parseCommand' input = case parser (Text.unpack input) of
---             Left _ -> False
---             Right [] -> False
---             Right (x:_) -> x == (parseCommand input)

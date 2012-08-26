@@ -5,8 +5,7 @@ import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
 import Data.Maybe
-import Network.HTTP
-import Network.URI (parseURI, uriToString)
+import Network.URI (parseURI)
 import Network.URL
 import Mars.Command
 import Mars.Instances ()
@@ -23,33 +22,34 @@ querySeparator :: Text.Text
 querySeparator = "/"
 
 run :: State -> Command -> IO State
-run s (Cat [])           = indempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
-run s (Cat l)           = indempotent s $
-                                     Prelude.putStrLn $
-                                     ByteString.unpack $ ByteString.intercalate "\n" (concat $ map formattedJSONText l)
-                            where
-                                formattedJSONText :: Query -> [ByteString.ByteString]
-                                formattedJSONText q = map encodePretty $
-                                     queryDoc (fromMaybe emptyObjectCollection (document s)) $
-                                     prependToQuery (path s) q
+run s (Cat []) = indempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
+run s (Cat l) = indempotent s $
+                     Prelude.putStrLn $
+                     ByteString.unpack $ ByteString.intercalate "\n" (concatMap formattedJSONText l)
+                where
+                    formattedJSONText :: Query -> [ByteString.ByteString]
+                    formattedJSONText q = map encodePretty $
+                         queryDoc (fromMaybe emptyObjectCollection (document s)) $
+                         prependToQuery (path s) q
 run s (Ls Nothing) = indempotent s $ printLs s $ path s
 run s (Ls (Just query)) = indempotent s $ printLs s $ prependToQuery (path s) query
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
-run s (Cd query)        = return s {path = newQuery' }
+run s (Cd query) = return s {path = newQuery' }
         where
             newQuery' = case findItem of
                     [] -> path s
                     _       -> newQuery
             findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
             newQuery = prependToQuery (path s) query
-run s Href              = indempotent s $ case url s of
+run s Href = indempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
                             Just u  -> Prelude.putStrLn $ exportURL u
-run s Pwd               = indempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
-run s (Get Nothing)     = case url s of
+run s Pwd = indempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
+run s (Login loginPage) = getWithURL s loginPage
+run s (Get Nothing) = case url s of
                                 Nothing -> indempotent s (hPutStrLn stderr "No previous URL")
                                 Just u -> getWithURL s u
-run s (Get inUrl)         = case inUrl of
+run s (Get inUrl) = case inUrl of
                             Nothing -> indempotent s (hPutStrLn stderr "Invalid URL")
                             Just u -> getWithURL s u
 run s (Update query value) = return s'
@@ -60,10 +60,10 @@ run s (Update query value) = return s'
                                                     Left a -> Just a
                                                     Right a -> Just a
                                 s' = s{document = newDoc}
-run s (Save filename)   = do
+run s (Save filename) = do
                             writeFile (Text.unpack filename) (ByteString.unpack $ encodePretty $ toJSON s)
                             return s
-run s (Load filename)   = do
+run s (Load filename) = do
                             c <- readFile (Text.unpack filename)
                             case decode (ByteString.pack c) of
                                 Nothing -> do
@@ -85,9 +85,8 @@ getWithURL s inUrl = case parseURI $ exportURL inUrl of
                     hPutStrLn stderr "Invalid URL"
                     return s
                 Just u -> do
-                    rsp <- Conduit.parseUrl $ show u
-                    rsp  <- Conduit.withManager $ Conduit.httpLbs $ rsp
-                    -- body <- getResponseBody rsp
+                    getURL <- Conduit.parseUrl $ show u
+                    rsp  <- Conduit.withManager $ Conduit.httpLbs getURL
                     return s { url = Just inUrl
                              , document = decode $ Conduit.responseBody rsp
                              , path = Query []

@@ -1,13 +1,14 @@
-{-#LANGUAGE OverloadedStrings #-}
+{-#LANGUAGE OverloadedStrings, RankNTypes#-}
 module Mars.Parser where
 import Control.Monad
-import Data.Maybe
 import Data.Attoparsec (parseOnly)
 import Network.URL
 import Mars.Types
 import Data.Functor.Identity
 import Text.ParserCombinators.Parsec
+import Text.Parsec.Prim (ParsecT)
 import qualified Data.Aeson.Parser as AesonParser
+import qualified Data.Aeson.Types as AesonTypes
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Text as Text
 
@@ -22,10 +23,13 @@ parseQuery :: Text.Text -> Either ParseError Query
 parseQuery s = parse query "(unit-test)" $ Text.unpack s
 
 -- | Parse a list of commands
+commandLine :: forall u. ParsecT String u Identity [Command]
 commandLine = sepBy command (char '|')
 
+command :: forall u. ParsecT String u Identity Command
 command = keywordWithArg <|> keyword
 
+keyword :: forall u. ParsecT String u Identity Command
 keyword = (do
             _ <- string "href"
             return Href)
@@ -43,6 +47,7 @@ keyword = (do
             return $ Ls Nothing)
         <?> "keyword"
 
+keywordWithArg :: forall u. ParsecT String u Identity Command
 keywordWithArg = try (do
             _ <- string "get"
             _ <- spaces
@@ -51,8 +56,8 @@ keywordWithArg = try (do
         <|> try (do
             _ <- string "cat"
             _ <- spaces
-            q <- query `sepBy` (string " ")
-            return $ Cat $ q)
+            q <- query `sepBy` string " "
+            return $ Cat q)
         <|> try (do
             _ <- string "ls"
             _ <- spaces
@@ -85,17 +90,20 @@ keywordWithArg = try (do
             return $ Cd (Query []) )
         <?> "keyword and argument"
 
+uri :: forall u. ParsecT String u Identity (Maybe URL)
 uri = (do
         s <- many1 (noneOf " ")
         return $ importURL s)
         <?> "uri"
 
+maybeQuery :: forall u. ParsecT String u Identity (Maybe Query)
 maybeQuery = try (do
                     q <- query
                     return $ Just q)
         <|> return Nothing
         <?> "optional query"
 
+query :: forall u. ParsecT String u Identity Query
 query = (do
         items <- queryItem `sepBy` string (Text.unpack querySeparator)
         case items of
@@ -103,6 +111,7 @@ query = (do
             _  -> return $ Query items)
         <?> "query"
 
+queryItem :: forall u. ParsecT String u Identity QueryItem
 queryItem = try (do
                 _ <- string ".."
                 return LevelAbove)
@@ -116,15 +125,18 @@ queryItem = try (do
                 item <- namedItem
                 return $ NamedItem $ Text.pack item)
         <?> "queryItem"
-namedItem = do
-            s <- many1 $ noneOf "/ "
-            return s
+
+namedItem :: forall u. ParsecT String u Identity String
+namedItem = (many1 $ noneOf "/ ")
         <?> "namedItem"
+
+filename :: forall u. ParsecT String u Identity Text.Text
 filename = (do
         f <- wspaceSeparated -- Doesn't handle files with spaces of course...
         return $ Text.pack f)
         <?> "filename"
 
+value :: forall u.  ParsecT String u Identity AesonTypes.Value
 value = (do
         v <- wspaceSeparated
         case parseOnly AesonParser.value (ByteString.pack v) of
@@ -132,4 +144,5 @@ value = (do
             Right val -> return val)
         <?> "simple JSON Value"
 
+wspaceSeparated :: forall u. ParsecT String u Identity String
 wspaceSeparated = many1 (noneOf " ") <?> "token"

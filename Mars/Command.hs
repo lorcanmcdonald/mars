@@ -27,7 +27,7 @@ renderCommand :: Command -> Text.Text
 renderCommand (Get Nothing)  = Text.pack "get"
 renderCommand (Get (Just u)) = Text.append (Text.pack "get ") (Text.pack $ exportURL u)
 renderCommand (Cat [])  = Text.pack "cat"
-renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.concat $ map renderQuery l)
+renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") $ map renderQuery l)
 renderCommand (Ls Nothing)   = Text.pack "ls"
 renderCommand (Ls (Just a))  = Text.append (Text.pack "ls ") (renderQuery a)
 renderCommand (Save f)       = Text.append (Text.pack "save ") f
@@ -65,14 +65,14 @@ emptyObjectCollection = case object [] of
                         Object o -> O o
                         _ -> undefined
 moveUp :: Query -> Query
-moveUp (Query q)=  Query $ reverse $ drop 1 $ reverse q
+moveUp (Query q) =  Query $ reverse $ drop 1 $ reverse q
 
 modifyDoc :: CollectionValue -> Query -> Value -> Either CollectionValue CollectionValue
-modifyDoc (A a) (Query []) _ = Left $ A a
-modifyDoc (O o) (Query []) _ = Left $ O o
-modifyDoc (A a) (Query [IndexedItem x]) v = Right $ A $ Vector.update a $ Vector.fromList [(x, v)]
-modifyDoc (O o) (Query [NamedItem n]) v = Right $ O $ Map.insert n v o
-modifyDoc cv (Query (_:xs)) v =  modifyDoc cv (Query xs) v
+modifyDoc (A a) (Query []) _              = Left . A $ a
+modifyDoc (O o) (Query []) _              = Left . O $ o
+modifyDoc (A a) (Query [IndexedItem x]) v = Right . A . Vector.update a . Vector.fromList $ [(x, v)]
+modifyDoc (O o) (Query [NamedItem n]) v   = Right . O $ Map.insert n v o
+modifyDoc cv (Query (_:xs)) v             = modifyDoc cv (Query xs) v
 
 simplifyQuery :: Query -> Query
 simplifyQuery (Query l) = Query $ reverse $ foldr simplify [] $ reverse l

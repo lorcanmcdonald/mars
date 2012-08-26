@@ -26,8 +26,9 @@ data Command  = Get (Maybe URL)
               | Save Text.Text
               | Load Text.Text
               | Update Query Value
-              | Json -- Items return json types
-              | Join -- Join two query results, where they refer to the same items
+              -- | Json -- Items return json types
+              -- | Join -- Join two query results, where they refer to the same items
+              | Login URL
               | Cd Query
               | Href
               | Pwd
