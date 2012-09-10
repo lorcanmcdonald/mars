@@ -1,4 +1,4 @@
-{-#LANGUAGE OverloadedStrings #-}
+{-#LANGUAGE OverloadedStrings, CPP #-}
 module Main
 where
 import Control.Monad
@@ -6,10 +6,22 @@ import Mars.Command
 import Mars.Eval
 import Mars.Types
 import Mars.Parser
+#ifndef WINDOWS
 import System.Console.Readline
+#endif
 import System.IO
 import Data.Text.IO as TIO
 import qualified Data.Text as Text
+
+
+
+#ifdef WINDOWS
+readline :: String -> IO(Maybe String)
+readline _ = readLn
+
+addHistory _ = return ()
+#endif
+
 
 main :: IO()
 main = do
@@ -33,6 +45,7 @@ readEvalPrintLoop state = do
         Nothing     -> return ()
         Just line   -> do
                 addHistory line
+                print line
                 state' <- eval' state $ Text.pack line
                 readEvalPrintLoop state'
 

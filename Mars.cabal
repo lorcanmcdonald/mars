@@ -64,10 +64,8 @@ library
              , lenses
              , network
              , parsec
-             , readline
              , text
              , transformers
-             , unix
              , unordered-containers
              , url
              , vector
@@ -86,19 +84,24 @@ executable mars
              , data-lens
              , network
              , parsec
-             , readline
              , text
              , transformers
-             , unix
              , unordered-containers
              , url
              , vector
+  if os(windows)
+    Cpp-options: -DWINDOWS
+  else
+    build-depends: readline
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
   -- Modules not exported by this package.
   -- Other-modules:
 
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:
+
+
+
 Executable mars-tests
     Main-is: Tests/Mars/Main.hs
 
@@ -115,12 +118,10 @@ Executable mars-tests
                   , lenses
                   , network
                   , parsec
-                  , readline
                   , test-framework
                   , test-framework-quickcheck2
                   , text
                   , transformers
-                  , unix
                   , unordered-containers
                   , url
                   , vector
