@@ -13,8 +13,6 @@ import System.IO
 import Data.Text.IO as TIO
 import qualified Data.Text as Text
 
-
-
 #ifdef WINDOWS
 readline :: String -> IO(Maybe String)
 readline _ = readLn

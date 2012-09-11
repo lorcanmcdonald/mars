@@ -1,5 +1,7 @@
+{-#LANGUAGE DeriveDataTypeable #-}
 module Mars.Types where
 
+import Data.Typeable
 import Data.Aeson.Types
 import Network.URL
 import qualified Data.Text as Text
@@ -7,13 +9,13 @@ import qualified Data.Text as Text
 
 -- |The datatype representing the queries possible for comamnds that select items
 data Query = Query [QueryItem]
-    deriving (Show, Eq)
+    deriving (Show, Eq, Typeable)
 
 data QueryItem = NamedItem (Text.Text)
                | IndexedItem (Int)
                | WildCardItem
                | LevelAbove
-    deriving (Show, Eq)
+    deriving (Show, Eq, Typeable)
 
 data CollectionValue = O Object | A Array
     deriving (Show, Eq)
@@ -32,7 +34,7 @@ data Command  = Get (Maybe URL)
               | Cd Query
               | Href
               | Pwd
-              deriving (Show, Eq)
+              deriving (Show, Eq, Typeable)
 
 -- | The state of the replay program
 data State = State   { url :: Maybe URL
