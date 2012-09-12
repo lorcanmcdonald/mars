@@ -30,7 +30,7 @@ data Command  = Get (Maybe URL)
               | Update Query Value
               -- | Json -- Items return json types
               -- | Join -- Join two query results, where they refer to the same items
-              | Login URL
+              | Login URL [(String, String)]
               | Cd Query
               | Href
               | Pwd

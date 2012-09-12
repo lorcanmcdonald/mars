@@ -47,15 +47,9 @@ run s Href = indempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
                             Just u  -> Prelude.putStrLn $ exportURL u
 run s Pwd = indempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
-run s (Login loginPage) = do
-                            a <- loginWithURL s loginPage
+run s (Login loginPage inputs) = do
+                            _ <- loginWithURL s loginPage inputs
                             return s
-                        --contents <- runMaybeT $ openUrl "http://example.com"
-                        --case contents of
-                        --    Nothing -> return s
-                        --    Just c  -> do
-                        --                print $ readString [withParseHTML yes, withWarnings no] c
-                        --                return s
 
 run s (Get Nothing) = case url s of
                                 Nothing -> indempotent s (hPutStrLn stderr "No previous URL")
@@ -147,19 +141,24 @@ ansiColourText color t = case color of
 css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)
 
-loginWithURL :: State -> URL -> IO State
-loginWithURL s inUrl = case parseURI $ exportURL inUrl of
+loginWithURL :: State -> URL -> [(String, String)] -> IO State
+loginWithURL s inUrl inputs = case parseURI $ exportURL inUrl of
                 Nothing -> do
                     hPutStrLn stderr "Invalid URL"
                     return s
                 Just u -> do
                     getURL <- Conduit.parseUrl $ show u
                     rsp  <- Conduit.withManager $ Conduit.httpLbs getURL
-                    inputNames <- runX . inputs $ doc rsp
+                    inputNames <- runX . names $ doc rsp
+                    inputValues <- runX . values $ doc rsp
+
+                    print $ zip inputNames inputValues
+
                     return s { url = Just inUrl
                              , document = decode $ Conduit.responseBody rsp
                              , path = Query []
                              }
                 where
-                    inputs tree = tree >>> css "input" >>> getAttrValue "name"
+                    names tree = (tree >>> css "input" >>> getAttrValue "name")
+                    values tree = (tree >>> css "input" >>> getAttrValue "value")
                     doc rsp = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . Conduit.responseBody $ rsp

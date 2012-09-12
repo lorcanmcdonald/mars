@@ -51,8 +51,15 @@ keywordWithArg :: forall u. ParsecT String u Identity Command
 keywordWithArg = try (do
             _ <- string "get"
             _ <- spaces
-            u <- uri
+            u <- optionalURI
             return $ Get u)
+        <|> try (do
+            _ <- string "login"
+            _ <- spaces
+            u <- uri
+            _ <- spaces
+            q <- many queryString
+            return $ Login u q)
         <|> try (do
             _ <- string "cat"
             _ <- spaces
@@ -89,12 +96,26 @@ keywordWithArg = try (do
             _ <- string "cd"
             return $ Cd (Query []) )
         <?> "keyword and argument"
+queryString = (do
+            _ <- string "&"
+            name <- many1 (noneOf "=")
+            _ <- string "="
+            value <- many1 (noneOf " ")
+            return (name, value))
 
-uri :: forall u. ParsecT String u Identity (Maybe URL)
+uri :: forall u. ParsecT String u Identity URL
 uri = (do
         s <- many1 (noneOf " ")
+        case importURL s of
+                Nothing -> mzero
+                Just u -> return u
+        )
+        <?> "URI"
+optionalURI :: forall u. ParsecT String u Identity (Maybe URL)
+optionalURI = (do
+        s <- many1 (noneOf " ")
         return $ importURL s)
-        <?> "uri"
+        <?> "optional URI"
 
 maybeQuery :: forall u. ParsecT String u Identity (Maybe Query)
 maybeQuery = try (do

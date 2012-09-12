@@ -34,7 +34,7 @@ main = do
                 return ()
 
 exec :: State -> [Text.Text] -> IO State
-exec = foldM eval'
+exec = foldM eval
 
 readEvalPrintLoop :: State -> IO ()
 readEvalPrintLoop state = do
@@ -43,12 +43,11 @@ readEvalPrintLoop state = do
         Nothing     -> return ()
         Just line   -> do
                 addHistory line
-                print line
-                state' <- eval' state $ Text.pack line
+                state' <- eval state $ Text.pack line
                 readEvalPrintLoop state'
 
-eval' :: State -> Text.Text -> IO State
-eval' s input = case parser input of
+eval :: State -> Text.Text -> IO State
+eval s input = case parser input of
             Left err -> do
                         print err
                         return s
