@@ -96,12 +96,14 @@ keywordWithArg = try (do
             _ <- string "cd"
             return $ Cd (Query []) )
         <?> "keyword and argument"
+
+queryString :: forall u. ParsecT String u Identity (String, String)
 queryString = (do
             _ <- string "&"
-            name <- many1 (noneOf "=")
+            k <- many1 (noneOf "=")
             _ <- string "="
-            value <- many1 (noneOf " ")
-            return (name, value))
+            v<- many1 (noneOf " ")
+            return (k, v))
 
 uri :: forall u. ParsecT String u Identity URL
 uri = (do
@@ -143,12 +145,17 @@ queryItem = try (do
                 item <- many1 digit
                 return $ IndexedItem (read item))
             <|> try (do
+                _ <- string "\""
+                item <- many1 . noneOf $ "\""
+                _ <- string "\""
+                return $ NamedItem $ Text.pack item)
+            <|> try (do
                 item <- namedItem
                 return $ NamedItem $ Text.pack item)
         <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String
-namedItem = (many1 $ noneOf "/ ")
+namedItem = (many1 $ noneOf $ map (head . Text.unpack) [querySeparator, " "])
         <?> "namedItem"
 
 filename :: forall u. ParsecT String u Identity Text.Text

@@ -1,4 +1,5 @@
 -- |Types representing items entered at the Mars command line
+{-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE GeneralizedNewtypeDeriving #-}
 module Mars.Command
 where
@@ -42,7 +43,7 @@ renderCommand (Cd a)         = Text.append (Text.pack "cd ") (renderQuery a)
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
-renderQuery (Query l) = Text.intercalate (Text.pack "/") $ map renderQueryItem l
+renderQuery (Query l) = Text.intercalate ("/") $ map renderQueryItem l
 
 -- |A text version of a QueryItem
 renderQueryItem :: QueryItem -> Text.Text
