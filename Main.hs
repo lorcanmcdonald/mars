@@ -6,32 +6,42 @@ import Mars.Command
 import Mars.Eval
 import Mars.Types
 import Mars.Parser
+import Network (withSocketsDo)
 #ifndef WINDOWS
 import System.Console.Readline
 #endif
-import System.IO
+import System.IO as SIO
 import Data.Text.IO as TIO
 import qualified Data.Text as Text
 
 #ifdef WINDOWS
 readline :: String -> IO(Maybe String)
-readline _ = readLn
+readline prompt = do
+                SIO.putStr prompt
+                hFlush stdout
+                line <- SIO.getLine
+                return $ Just line
 
 addHistory _ = return ()
+testTTY = return True
+#endif
+#ifndef WINDOWS
+testTTY = hIsTerminalDevice stdin
 #endif
 
-
 main :: IO()
-main = do
-    isTTY <- hIsTerminalDevice stdin
-    if isTTY
-        then -- Start an interactive session
-            readEvalPrintLoop initialState
-        else -- Read from stdin
-            do
-                input <- TIO.hGetContents stdin
-                _ <- exec initialState (Text.lines input)
-                return ()
+main =  do
+    isTTY <- testTTY
+    hFlush stdout
+    withSocketsDo $ readEvalPrintLoop initialState
+    -- if isTTY
+    --     then -- Start an interactive session
+    --         withSocketsDo $ readEvalPrintLoop initialState
+    --     else -- Read from stdin
+    --         do
+    --             input <- TIO.hGetContents stdin
+    --             _ <- exec initialState (Text.lines input)
+    --             return ()
 
 exec :: State -> [Text.Text] -> IO State
 exec = foldM eval
@@ -39,6 +49,7 @@ exec = foldM eval
 readEvalPrintLoop :: State -> IO ()
 readEvalPrintLoop state = do
     maybeLine <- readline "> "
+    hFlush stdout
     case maybeLine of
         Nothing     -> return ()
         Just line   -> do

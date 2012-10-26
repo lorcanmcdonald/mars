@@ -104,30 +104,30 @@ executable mars
 
 
 
-Executable mars-tests
-    Main-is: Tests/Mars/Main.hs
-
-    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
-    Build-depends: QuickCheck
-                  , HTTP
-                  , http-conduit
-                  , aeson
-                  , aeson-pretty
-                  , attoparsec
-                  , base >=3 && < 5
-                  , bytestring
-                  , data-lens
-                  , lenses
-                  , network
-                  , parsec
-                  , test-framework
-                  , test-framework-quickcheck2
-                  , text
-                  , transformers
-                  , unordered-containers
-                  , url
-                  , vector
-
+--Executable mars-tests
+--    Main-is: Tests/Mars/Main.hs
+--
+--    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
+--    Build-depends: QuickCheck
+--                  , HTTP
+--                  , http-conduit
+--                  , aeson
+--                  , aeson-pretty
+--                  , attoparsec
+--                  , base >=3 && < 5
+--                  , bytestring
+--                  , data-lens
+--                  , lenses
+--                  , network
+--                  , parsec
+--                  , test-framework
+--                  , test-framework-quickcheck2
+--                  , text
+--                  , transformers
+--                  , unordered-containers
+--                  , url
+--                  , vector
+--
 source-repository head
     type: git
     location: https://github.com/lorcanmcdonald/mars.git
