@@ -53,6 +53,7 @@ library
       Mars.Eval
       Mars.Types
       Mars.Instances
+      Tests.Mars.Arbitraries
   build-depends: HTTP
              , http-conduit
              , QuickCheck
@@ -93,30 +94,20 @@ executable mars
 
 
 
---Executable mars-tests
---    Main-is: Tests/Mars/Main.hs
---
---    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
---    Build-depends: QuickCheck
---                  , HTTP
---                  , http-conduit
---                  , aeson
---                  , aeson-pretty
---                  , attoparsec
---                  , base >=3 && < 5
---                  , bytestring
---                  , data-lens
---                  , lenses
---                  , network
---                  , parsec
---                  , test-framework
---                  , test-framework-quickcheck2
---                  , text
---                  , transformers
---                  , unordered-containers
---                  , url
---                  , vector
---
+Executable mars-tests
+    Hs-Source-Dirs: Tests/Mars
+
+    Main-is: Main.hs
+
+    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
+    Build-depends: QuickCheck
+                  , base >=3 && < 5
+                  , test-framework
+                  , test-framework-quickcheck2
+                  , text
+                  , Mars
+                  , aeson
+
 source-repository head
     type: git
     location: https://github.com/lorcanmcdonald/mars.git
