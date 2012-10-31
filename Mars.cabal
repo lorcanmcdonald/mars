@@ -94,7 +94,7 @@ executable mars
 
 
 
-Test-suite mars-tests
+Test-suite test-mars
     Hs-Source-Dirs: Tests/Mars
     type: exitcode-stdio-1.0
     Main-is: Main.hs
