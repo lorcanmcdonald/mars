@@ -17,7 +17,7 @@ import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
-import qualified Network.HTTP.Conduit as Conduit
+import qualified Network.HTTP.Conduit as HTTP
 
 -- | The character used to separate query items when entered on the commandline
 querySeparator :: Text.Text
@@ -90,10 +90,10 @@ getWithURL s inUrl = case parseURI $ exportURL inUrl of
                     hPutStrLn stderr "Invalid URL"
                     return s
                 Just u -> do
-                    getURL <- Conduit.parseUrl $ show u
-                    rsp  <- Conduit.withManager $ Conduit.httpLbs getURL
+                    getURL <- HTTP.parseUrl $ show u
+                    rsp  <- HTTP.withManager $ HTTP.httpLbs getURL
                     return s { url = Just inUrl
-                             , document = decode $ Conduit.responseBody rsp
+                             , document = decode $ HTTP.responseBody rsp
                              , path = Query []
                              }
 
@@ -147,18 +147,18 @@ loginWithURL s inUrl inputs = case parseURI $ exportURL inUrl of
                     hPutStrLn stderr "Invalid URL"
                     return s
                 Just u -> do
-                    getURL <- Conduit.parseUrl $ show u
-                    rsp  <- Conduit.withManager $ Conduit.httpLbs getURL
+                    getURL <- HTTP.parseUrl $ show u
+                    rsp  <- HTTP.withManager $ HTTP.httpLbs getURL
                     inputNames <- runX . names $ doc rsp
                     inputValues <- runX . values $ doc rsp
 
                     print $ zip inputNames inputValues
 
                     return s { url = Just inUrl
-                             , document = decode $ Conduit.responseBody rsp
+                             , document = decode $ HTTP.responseBody rsp
                              , path = Query []
                              }
                 where
                     names tree = (tree >>> css "input" >>> getAttrValue "name")
                     values tree = (tree >>> css "input" >>> getAttrValue "value")
-                    doc rsp = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . Conduit.responseBody $ rsp
+                    doc rsp = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . HTTP.responseBody $ rsp
