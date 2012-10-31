@@ -52,6 +52,7 @@ library
       Mars.Parser
       Mars.Eval
       Mars.Types
+      Mars.Instances
   build-depends: HTTP
              , http-conduit
              , QuickCheck
@@ -73,24 +74,12 @@ library
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -fllvm
 
 executable mars
+  Hs-Source-Dirs: Client
   main-is: Main.hs
-  build-depends: HTTP
-             , http-conduit
-             , QuickCheck
-             , aeson
-             , aeson-pretty
-             , hxt
-             , attoparsec
-             , base >=3 && < 5
-             , bytestring
-             , data-lens
-             , network
-             , parsec
-             , text
-             , transformers
-             , unordered-containers
-             , url
-             , vector
+  build-depends: Mars
+                 , base >=3 && < 5
+                 , text
+                 , network
   if os(windows)
     Cpp-options: -DWINDOWS
   else

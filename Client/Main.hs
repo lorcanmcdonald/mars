@@ -22,7 +22,10 @@ readline prompt = do
                 line <- SIO.getLine
                 return $ Just line
 
+addHistory :: String -> IO()
 addHistory _ = return ()
+
+testTTY :: IO Bool
 testTTY = return True
 #endif
 #ifndef WINDOWS
@@ -31,17 +34,18 @@ testTTY = hIsTerminalDevice stdin
 
 main :: IO()
 main =  do
+    hSetEncoding stdout utf8
     isTTY <- testTTY
     hFlush stdout
-    withSocketsDo $ readEvalPrintLoop initialState
-    -- if isTTY
-    --     then -- Start an interactive session
-    --         withSocketsDo $ readEvalPrintLoop initialState
-    --     else -- Read from stdin
-    --         do
-    --             input <- TIO.hGetContents stdin
-    --             _ <- exec initialState (Text.lines input)
-    --             return ()
+    -- withSocketsDo $ readEvalPrintLoop initialState
+    if isTTY
+        then -- Start an interactive session
+            withSocketsDo $ readEvalPrintLoop initialState
+        else -- Read from stdin
+            do
+                input <- TIO.hGetContents stdin
+                _ <- exec initialState (Text.lines input)
+                return ()
 
 exec :: State -> [Text.Text] -> IO State
 exec = foldM eval
