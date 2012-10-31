@@ -146,19 +146,23 @@ loginWithURL s inUrl inputs = case parseURI $ exportURL inUrl of
                 Nothing -> do
                     hPutStrLn stderr "Invalid URL"
                     return s
+
                 Just u -> do
                     getURL <- Conduit.parseUrl $ show u
                     rsp  <- Conduit.withManager $ Conduit.httpLbs getURL
                     inputNames <- runX . names $ doc rsp
                     inputValues <- runX . values $ doc rsp
 
-                    print $ zip inputNames inputValues
+                    print $ (zip inputNames inputValues) ++ inputs
+                    actionURL <- runX . formAction $ doc rsp
 
                     return s { url = Just inUrl
                              , document = decode $ Conduit.responseBody rsp
                              , path = Query []
                              }
+
                 where
-                    names tree = (tree >>> css "input" >>> getAttrValue "name")
-                    values tree = (tree >>> css "input" >>> getAttrValue "value")
-                    doc rsp = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . Conduit.responseBody $ rsp
+                    names tree      = (tree >>> css "input" >>> getAttrValue "name")
+                    values tree     = (tree >>> css "input" >>> getAttrValue "value")
+                    formAction tree = (tree >>> css "form" >>> getAttrValue "action") -- TODO: We're going to assume there's one form for now
+                    doc rsp         = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . Conduit.responseBody $ rsp
