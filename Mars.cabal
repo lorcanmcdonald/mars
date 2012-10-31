@@ -94,9 +94,9 @@ executable mars
 
 
 
-Executable mars-tests
+Test-suite mars-tests
     Hs-Source-Dirs: Tests/Mars
-
+    type: exitcode-stdio-1.0
     Main-is: Main.hs
 
     ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
