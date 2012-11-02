@@ -68,6 +68,8 @@ library
              , network
              , parsec
              , text
+             , http-types
+             , time
              , transformers
              , unordered-containers
              , url
@@ -86,13 +88,6 @@ executable mars
   else
     build-depends: readline
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
-  -- Modules not exported by this package.
-  -- Other-modules:
-
-  -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
-  -- Build-tools:
-
-
 
 Test-suite test-mars
     Hs-Source-Dirs: Tests/Mars

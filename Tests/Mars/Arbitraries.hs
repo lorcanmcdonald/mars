@@ -8,6 +8,7 @@ import Data.Attoparsec.Number
 import Network.URL
 import Mars.Types
 import Test.QuickCheck
+import Network.HTTP.Conduit
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
@@ -91,12 +92,15 @@ arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (\ a -> a > 0)
 
 instance Arbitrary State where
-    arbitrary = liftM3 State arbitrary arbitrary arbitrary
+    arbitrary = liftM4 State arbitrary arbitrary arbitrary arbitrary
 
 instance Arbitrary CollectionValue where
     arbitrary = oneof [ liftM A arbitraryArray
                       , liftM O arbitraryObject
                       ]
+
+instance Arbitrary CookieJar where
+    arbitrary = oneof []
 
 arbitraryArray :: Gen Array
 arbitraryArray = liftM Vector.fromList arbitrary

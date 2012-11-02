@@ -1,4 +1,4 @@
-{-#LANGUAGE OverloadedStrings #-}
+{-#LANGUAGE OverloadedStrings, DoAndIfThenElse #-}
 module Mars.Eval
 where
 import Control.Arrow
@@ -8,6 +8,7 @@ import Data.Aeson.Types
 import Data.Maybe
 import Network.URI (parseURI)
 import Network.URL
+import Network.HTTP.Types (status200)
 import Mars.Command
 import Mars.Instances ()
 import Mars.Types
@@ -18,14 +19,11 @@ import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import qualified Network.HTTP.Conduit as HTTP
-
--- | The character used to separate query items when entered on the commandline
-querySeparator :: Text.Text
-querySeparator = "/"
+import Network.HTTP.Conduit.Browser
 
 run :: State -> Command -> IO State
-run s (Cat []) = indempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
-run s (Cat l) = indempotent s $
+run s (Cat []) = idempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
+run s (Cat l) = idempotent s $
                      Prelude.putStrLn $
                      ByteString.unpack $ ByteString.intercalate "\n" (concatMap formattedJSONText l)
                 where
@@ -33,8 +31,8 @@ run s (Cat l) = indempotent s $
                     formattedJSONText q = map encodePretty $
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
                          prependToQuery (path s) q
-run s (Ls Nothing) = indempotent s $ printLs s $ path s
-run s (Ls (Just query)) = indempotent s $ printLs s $ prependToQuery (path s) query
+run s (Ls Nothing) = idempotent s $ printLs s $ path s
+run s (Ls (Just query)) = idempotent s $ printLs s $ prependToQuery (path s) query
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
 run s (Cd query) = return s {path = newQuery' }
         where
@@ -43,19 +41,19 @@ run s (Cd query) = return s {path = newQuery' }
                     _       -> newQuery
             findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
             newQuery = prependToQuery (path s) query
-run s Href = indempotent s $ case url s of
+run s Href = idempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
                             Just u  -> Prelude.putStrLn $ exportURL u
-run s Pwd = indempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
+run s Pwd = idempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
 run s (Login loginPage inputs) = do
                             _ <- loginWithURL s loginPage inputs
                             return s
 
 run s (Get Nothing) = case url s of
-                                Nothing -> indempotent s (hPutStrLn stderr "No previous URL")
+                                Nothing -> idempotent s (hPutStrLn stderr "No previous URL")
                                 Just u -> getWithURL s u
 run s (Get inUrl) = case inUrl of
-                            Nothing -> indempotent s (hPutStrLn stderr "Invalid URL")
+                            Nothing -> idempotent s (hPutStrLn stderr "Invalid URL")
                             Just u -> getWithURL s u
 run s (Update query value) = return s'
                             where
@@ -75,12 +73,11 @@ run s (Load filename) = do
                                             hPutStrLn stderr "Invalid saved state"
                                             return s
                                 Just j -> case fromJSON j of
-                                            Error err -> indempotent s $ hPutStrLn stderr ("Invalid saved state: " ++ err)
+                                            Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " ++ err)
                                             Success state -> return state
 
-
-indempotent :: State -> IO() -> IO State
-indempotent s io = do
+idempotent :: State -> IO() -> IO State
+idempotent s io = do
                 io
                 return s
 
@@ -142,23 +139,58 @@ css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)
 
 loginWithURL :: State -> URL -> [(String, String)] -> IO State
-loginWithURL s inUrl inputs = case parseURI $ exportURL inUrl of
-                Nothing -> do
-                    hPutStrLn stderr "Invalid URL"
-                    return s
-                Just u -> do
-                    getURL <- HTTP.parseUrl $ show u
-                    rsp  <- HTTP.withManager $ HTTP.httpLbs getURL
-                    inputNames <- runX . names $ doc rsp
-                    inputValues <- runX . values $ doc rsp
+loginWithURL s url inputs = login (exportURL url) s
 
-                    print $ zip inputNames inputValues
+login u s = do
+                    result <- HTTP.withManager $ (\manager -> do
+                        browse manager $ do
+                            init_req1 <- HTTP.parseUrl u
 
-                    return s { url = Just inUrl
-                             , document = decode $ HTTP.responseBody rsp
-                             , path = Query []
-                             }
+                            let req1' = init_req1 { HTTP.method = "POST",
+                                                    HTTP.checkStatus = \_ _ -> Nothing }
+                            let post_data = []
+                            let req1 = HTTP.urlEncodedBody post_data req1'
+                            resp1 <- makeRequestLbs req1
+                            if( (HTTP.responseStatus resp1) == status200)
+                            then
+                                do
+                                    -- inputNames  <- runX . names $ doc resp1
+                                    -- inputValues <- runX . values $ doc resp1
+                                    -- action      <- runX . formAction $ doc resp1
+
+                                    cj <- getCookieJar
+                                    return $ s
+                            else
+                                do
+                                    return $ s)
+                    return result
+
+                    -- HTTP.withManager $ (\ manager -> do
+                    --     browse manager $ do
+                    --         getReq <- HTTP.parseUrl . show $ u
+                    --         rsp <- makeRequest getReq
+
+                    --         
+                    --         
+                    --         
+
+                    --         print $ inputs ++ zip inputNames inputValues
+
+                    --         postReq <- HTTP.parseUrl $ "http://localhost/" ++ ( head $ action)
+                    --         loginRsp <- makeRequest postReq
+
+                    --         jsonReq <- HTTP.parseUrl $ "http://localhost/sla/"
+                    --         jsonRsp <- makeRequest jsonReq
+
+                    --         print jsonRsp
+
+                    --         return s { url = Just inUrl
+                    --              , document = decode $ HTTP.responseBody rsp
+                    --              , path = Query []
+                    --              , cookies = cookies
+                    --              })
                 where
                     names tree = (tree >>> css "input" >>> getAttrValue "name")
                     values tree = (tree >>> css "input" >>> getAttrValue "value")
+                    formAction tree = (tree >>> css "form" >>> getAttrValue "action")
                     doc rsp = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . HTTP.responseBody $ rsp
