@@ -159,10 +159,15 @@ namedItem = (many1 $ noneOf $ map (head . Text.unpack) [querySeparator, " "])
         <?> "namedItem"
 
 filename :: forall u. ParsecT String u Identity Text.Text
-filename = (do
-        f <- wspaceSeparated -- Doesn't handle files with spaces of course...
-        return $ Text.pack f)
-        <?> "filename"
+filename = try (do
+                _ <- string "\""
+                f <- many1 . noneOf $ "\""
+                _ <- string "\""
+                return . Text.pack $ f)
+            <|> try (do
+                f <- wspaceSeparated -- Doesn't handle files with spaces of course...
+                return $ Text.pack f)
+            <?> "filename"
 
 value :: forall u.  ParsecT String u Identity AesonTypes.Value
 value = (do

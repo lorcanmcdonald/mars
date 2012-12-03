@@ -59,9 +59,7 @@ run s (Update query value) = return s'
                             where
                                 newDoc = case document s of
                                             Nothing -> Nothing
-                                            Just doc -> case modifyDoc doc query value of
-                                                    Left a -> Just a
-                                                    Right a -> Just a
+                                            Just doc -> Just $ modifyDoc doc query value 
                                 s' = s{document = newDoc}
 run s (Save filename)              = do
                             writeFile (Text.unpack filename) (ByteString.unpack $ encodePretty $ toJSON s)

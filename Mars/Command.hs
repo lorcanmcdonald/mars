@@ -69,7 +69,7 @@ getC (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
 getC (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
 getC _ _                       = object []
 
-setC :: QueryItem -> (Value) -> Value -> Value
+setC :: QueryItem -> Value -> Value -> Value
 setC (IndexedItem i) (v) (Array a) = toJSON $ Vector.update a . Vector.fromList $ [(i, v)]
 setC (NamedItem n) (v) (Object o)  = toJSON $ Map.insert n v o
 setC _ _ c                   = c
@@ -77,8 +77,6 @@ setC _ _ c                   = c
 moveUp :: Query -> Query
 moveUp (Query q) =  Query $ reverse $ drop 1 $ reverse q
 
-modifyDoc = undefined
--- modifyDoc :: CollectionValue -> Query -> Value -> Either CollectionValue CollectionValue
 -- modifyDoc (A a) (Query []) _              = Left . A $ a
 -- modifyDoc (O o) (Query []) _              = Left . O $ o
 -- modifyDoc (A a) (Query [IndexedItem x]) v = Right . A . Vector.update a . Vector.fromList $ [(x, v)]
@@ -91,6 +89,9 @@ simplifyQuery (Query l) = Query $ reverse $ foldr simplify [] $ reverse l
         simplify :: QueryItem -> [QueryItem] -> [QueryItem]
         simplify (LevelAbove) processed    = drop 1 processed
         simplify item processed   = item:processed
+
+modifyDoc :: Value -> Query -> Value -> Value
+modifyDoc cv q v = (modifyFunc q) cv v
 
 queryDoc :: Value -> Query -> [Value]
 queryDoc v q = queryFunc q v
@@ -118,5 +119,9 @@ queryDoc v q = queryFunc q v
 
 queryFunc :: Query -> (Value -> [Value])
 queryFunc (Query ql) = (\cv -> [cv ^. (foldr (.) id $  (map toLens ql) )])
+    where
+        toLens i = lens (getC i) (setC i)
+modifyFunc :: Query -> (Value -> Value -> Value)
+modifyFunc (Query ql) = (\cv v -> (foldr (.) id $ (map toLens ql) ) ^= v $ cv )
     where
         toLens i = lens (getC i) (setC i)
