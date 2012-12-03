@@ -23,7 +23,7 @@ import Network.HTTP.Conduit.Browser
 
 run :: State -> Command -> IO State
 run s (Cat []) = idempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
-run s (Cat l) = idempotent s $
+run s (Cat l)  = idempotent s $
                      Prelude.putStrLn $
                      ByteString.unpack $ ByteString.intercalate "\n" (concatMap formattedJSONText l)
                 where
@@ -31,20 +31,20 @@ run s (Cat l) = idempotent s $
                     formattedJSONText q = map encodePretty $
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
                          prependToQuery (path s) q
-run s (Ls Nothing) = idempotent s $ printLs s $ path s
-run s (Ls (Just query)) = idempotent s $ printLs s $ prependToQuery (path s) query
+run s (Ls Nothing)                  = idempotent s $ printLs s $ path s
+run s (Ls (Just query))             = idempotent s $ printLs s $ prependToQuery (path s) query
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
-run s (Cd query) = return s {path = newQuery' }
+run s (Cd query)                    = return s {path = newQuery' }
         where
             newQuery' = case findItem of
                     [] -> path s
                     _       -> newQuery
             findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
             newQuery = prependToQuery (path s) query
-run s Href = idempotent s $ case url s of
+run s Href           = idempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
                             Just u  -> Prelude.putStrLn $ exportURL u
-run s Pwd = idempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
+run s Pwd                      = idempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
 run s (Login loginPage inputs) = do
                             _ <- loginWithURL s loginPage inputs
                             return s
@@ -63,7 +63,7 @@ run s (Update query value) = return s'
                                                     Left a -> Just a
                                                     Right a -> Just a
                                 s' = s{document = newDoc}
-run s (Save filename) = do
+run s (Save filename)              = do
                             writeFile (Text.unpack filename) (ByteString.unpack $ encodePretty $ toJSON s)
                             return s
 run s (Load filename) = do
@@ -100,7 +100,7 @@ printLs s q = Prelude.putStrLn $ Text.unpack $ format $ ls (fromMaybe emptyObjec
         format :: [[Text.Text]] -> Text.Text
         format l = Text.intercalate "\n" $ map (Text.intercalate "\n") l
 
-ls :: CollectionValue -> Query -> [[Text.Text]]
+ls :: Value -> Query -> [[Text.Text]]
 ls doc query = map asString elements
             where
                 asString :: Value -> [Text.Text]

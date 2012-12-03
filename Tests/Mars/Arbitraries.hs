@@ -94,11 +94,6 @@ arbitraryPositiveInt = arbitrary `suchThat` (\ a -> a > 0)
 instance Arbitrary State where
     arbitrary = liftM4 State arbitrary arbitrary arbitrary arbitrary
 
-instance Arbitrary CollectionValue where
-    arbitrary = oneof [ liftM A arbitraryArray
-                      , liftM O arbitraryObject
-                      ]
-
 instance Arbitrary CookieJar where
     arbitrary = oneof []
 

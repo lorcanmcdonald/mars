@@ -56,8 +56,12 @@ library
       Tests.Mars.Arbitraries
   build-depends: HTTP
              , http-conduit
+             , http-conduit-browser
+             , data-lens
+             , data-lens-template
              , QuickCheck
              , aeson
+             , aeson-lens
              , aeson-pretty
              , attoparsec
              , base >=3 && < 5

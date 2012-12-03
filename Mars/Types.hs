@@ -18,9 +18,6 @@ data QueryItem = NamedItem (Text.Text)
                | LevelAbove
     deriving (Show, Eq, Typeable)
 
-data CollectionValue = O Object | A Array
-    deriving (Show, Eq)
-
 -- |A data type representing the primitive commands available in the Mars
 -- repl
 data Command  = Get (Maybe URL)
@@ -40,6 +37,6 @@ data Command  = Get (Maybe URL)
 -- | The state of the replay program
 data State = State   { url :: Maybe URL
                      , path :: Query
-                     , document :: Maybe CollectionValue
+                     , document :: Maybe Value
                      , cookies  :: CookieJar
                      }
