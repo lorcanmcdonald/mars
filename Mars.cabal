@@ -52,6 +52,8 @@ library
       Mars.Parser
       Mars.Eval
       Mars.Types
+      Mars.Instances
+      Tests.Mars.Arbitraries
   build-depends: HTTP
              , http-conduit
              , QuickCheck
@@ -73,24 +75,12 @@ library
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -fllvm
 
 executable mars
+  Hs-Source-Dirs: Client
   main-is: Main.hs
-  build-depends: HTTP
-             , http-conduit
-             , QuickCheck
-             , aeson
-             , aeson-pretty
-             , hxt
-             , attoparsec
-             , base >=3 && < 5
-             , bytestring
-             , data-lens
-             , network
-             , parsec
-             , text
-             , transformers
-             , unordered-containers
-             , url
-             , vector
+  build-depends: Mars
+                 , base >=3 && < 5
+                 , text
+                 , network
   if os(windows)
     Cpp-options: -DWINDOWS
   else
@@ -104,29 +94,19 @@ executable mars
 
 
 
-Executable mars-tests
-    Main-is: Tests/Mars/Main.hs
+Test-suite test-mars
+    Hs-Source-Dirs: Tests/Mars
+    type: exitcode-stdio-1.0
+    Main-is: Main.hs
 
     ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
     Build-depends: QuickCheck
-                  , HTTP
-                  , http-conduit
-                  , aeson
-                  , aeson-pretty
-                  , attoparsec
                   , base >=3 && < 5
-                  , bytestring
-                  , data-lens
-                  , lenses
-                  , network
-                  , parsec
                   , test-framework
                   , test-framework-quickcheck2
                   , text
-                  , transformers
-                  , unordered-containers
-                  , url
-                  , vector
+                  , Mars
+                  , aeson
 
 source-repository head
     type: git

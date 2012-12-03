@@ -22,7 +22,7 @@ tests = [
                 , testProperty "move up shortens" prop_move_up_shorten
                 --, testProperty "commandParser and handparser the same" prop_comp_parsers
                 --, testProperty "state parse unparse" prop_state_parse
-                , testProperty "modifyDoc modifies Document" prop_modifyDoc_modifies
+                -- , testProperty "modifyDoc modifies Document" prop_modifyDoc_modifies
             ]
         ]
 
