@@ -1,9 +1,7 @@
 import Debug.Trace
 import Mars.Command
-import Mars.Parser
-import Mars.Parser ()
 import Mars.Types
-import Data.Aeson.Types
+-- import Data.Aeson.Types
 import Tests.Mars.Arbitraries()
 import Test.Framework (defaultMain, testGroup, Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -45,9 +43,9 @@ prop_move_up_shorten q = len(moveUp q) <= len q
     where
         len (Query l) = length l
 
-prop_modifyDoc_modifies :: CollectionValue -> Query -> Value -> Bool
-prop_modifyDoc_modifies doc q new = case modifyDoc doc q new of
-                                    Left _ ->trace (show $ queryDoc doc q) $ queryDoc doc q == [] -- If the
-                                                                   --  modification fails check to see if it
-                                                                   --  should have failed
-                                    Right updatedDoc -> queryDoc updatedDoc q == [new]
+-- prop_modifyDoc_modifies :: Value -> Query -> Value -> Bool
+-- prop_modifyDoc_modifies doc q new = case modifyDoc doc q new of
+--                                     Left _ ->trace (show $ queryDoc doc q) $ queryDoc doc q == [] -- If the
+--                                                                    --  modification fails check to see if it
+--                                                                    --  should have failed
+--                                     Right updatedDoc -> queryDoc updatedDoc q == [new]

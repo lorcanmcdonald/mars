@@ -17,7 +17,7 @@ instance Arbitrary Text.Text where
     arbitrary = liftM Text.pack arbString
 
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] ++ ['a' .. 'z'])) `suchThat` (\ a -> length a > 0)
+arbString = listOf ( elements (['A'..'Z'] ++ ['a' .. 'z'])) `suchThat` null a
 
 instance Arbitrary URL where
     arbitrary = liftM3 URL arbitrary arbString arbDict
@@ -79,7 +79,7 @@ instance Arbitrary Command where
                       ]
 
 instance Arbitrary Query where
-    arbitrary = suchThat (liftM Query arbitrary) (\ (Query l) -> length l > 0)
+    arbitrary = suchThat (liftM Query arbitrary) (\ (Query l) -> null l)
 
 instance Arbitrary QueryItem where
     arbitrary = oneof  [ liftM NamedItem arbitrary
@@ -89,7 +89,7 @@ instance Arbitrary QueryItem where
                        ]
 
 arbitraryPositiveInt :: Gen Int
-arbitraryPositiveInt = arbitrary `suchThat` (\ a -> a > 0)
+arbitraryPositiveInt = arbitrary `suchThat` (> 0)
 
 instance Arbitrary State where
     arbitrary = liftM4 State arbitrary arbitrary arbitrary arbitrary
