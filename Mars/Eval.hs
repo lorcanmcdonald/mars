@@ -139,8 +139,7 @@ css tag = multi (hasName tag)
 loginWithURL :: State -> URL -> [(String, String)] -> IO State
 loginWithURL s url inputs = login (exportURL url) s
 
-login u s = do
-                    result <- HTTP.withManager $ (\manager -> do
+login u s = HTTP.withManager (\manager ->
                         browse manager $ do
                             init_req1 <- HTTP.parseUrl u
 
@@ -149,7 +148,7 @@ login u s = do
                             let post_data = []
                             let req1 = HTTP.urlEncodedBody post_data req1'
                             resp1 <- makeRequestLbs req1
-                            if( (HTTP.responseStatus resp1) == status200)
+                            if HTTP.responseStatus resp1 == status200
                             then
                                 do
                                     -- inputNames  <- runX . names $ doc resp1
@@ -157,11 +156,9 @@ login u s = do
                                     -- action      <- runX . formAction $ doc resp1
 
                                     cj <- getCookieJar
-                                    return $ s
+                                    return s
                             else
-                                do
-                                    return $ s)
-                    return result
+                                return s)
 
                     -- HTTP.withManager $ (\ manager -> do
                     --     browse manager $ do
@@ -188,7 +185,7 @@ login u s = do
                     --              , cookies = cookies
                     --              })
                 where
-                    names tree = (tree >>> css "input" >>> getAttrValue "name")
-                    values tree = (tree >>> css "input" >>> getAttrValue "value")
-                    formAction tree = (tree >>> css "form" >>> getAttrValue "action")
-                    doc rsp = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . HTTP.responseBody $ rsp
+                    names tree = tree >>> css "input" >>> getAttrValue "name"
+                    values tree = tree >>> css "input" >>> getAttrValue "value"
+                    formAction tree = tree >>> css "form" >>> getAttrValue "action"
+                    doc rsp = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp

@@ -1,7 +1,6 @@
 -- |Types representing items entered at the Mars command line
 {-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE GeneralizedNewtypeDeriving #-}
-{-#LANGUAGE TemplateHaskell #-}
 module Mars.Command
 
 where
@@ -52,7 +51,7 @@ renderCommand (Cd a)         = Text.append (Text.pack "cd ") (renderQuery a)
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
-renderQuery (Query l) = Text.intercalate ("/") $ map renderQueryItem l
+renderQuery (Query l) = Text.intercalate "/" $ map renderQueryItem l
 
 -- |A text version of a QueryItem
 renderQueryItem :: QueryItem -> Text.Text
@@ -91,7 +90,7 @@ simplifyQuery (Query l) = Query $ reverse $ foldr simplify [] $ reverse l
         simplify item processed   = item:processed
 
 modifyDoc :: Value -> Query -> Value -> Value
-modifyDoc cv q v = (modifyFunc q) cv v
+modifyDoc cv q = modifyFunc q cv
 
 queryDoc :: Value -> Query -> [Value]
 queryDoc v q = queryFunc q v
@@ -117,11 +116,11 @@ queryDoc v q = queryFunc q v
 --         queryDoc' (Query (LevelAbove:_)) _ = [] -- This seems like a poor way to fail?
 
 
-queryFunc :: Query -> (Value -> [Value])
-queryFunc (Query ql) = (\cv -> [cv ^. (foldr (.) id $  (map toLens ql) )])
+queryFunc :: Query -> Value -> [Value]
+queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id ql ]
     where
         toLens i = lens (getC i) (setC i)
-modifyFunc :: Query -> (Value -> Value -> Value)
-modifyFunc (Query ql) = (\cv v -> (foldr (.) id $ (map toLens ql) ) ^= v $ cv )
+modifyFunc :: Query -> Value -> Value -> Value
+modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id ql ^= v $ cv
     where
         toLens i = lens (getC i) (setC i)

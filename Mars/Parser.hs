@@ -98,12 +98,12 @@ keywordWithArg = try (do
         <?> "keyword and argument"
 
 queryString :: forall u. ParsecT String u Identity (String, String)
-queryString = (do
+queryString = do
             _ <- string "&"
             k <- many1 (noneOf "=")
             _ <- string "="
             v<- many1 (noneOf " ")
-            return (k, v))
+            return (k, v)
 
 uri :: forall u. ParsecT String u Identity URL
 uri = (do
@@ -155,7 +155,7 @@ queryItem = try (do
         <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String
-namedItem = (many1 $ noneOf $ map (head . Text.unpack) [querySeparator, " "])
+namedItem = (many1 . noneOf . map (head . Text.unpack) $ [querySeparator, " "])
         <?> "namedItem"
 
 filename :: forall u. ParsecT String u Identity Text.Text
