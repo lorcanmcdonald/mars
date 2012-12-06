@@ -155,7 +155,7 @@ queryItem = try (do
         <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String
-namedItem = (many1 . noneOf . map (head . Text.unpack) $ [querySeparator, " "])
+namedItem = (many1 . noneOf . fmap (head . Text.unpack) $ [querySeparator, " "])
         <?> "namedItem"
 
 filename :: forall u. ParsecT String u Identity Text.Text

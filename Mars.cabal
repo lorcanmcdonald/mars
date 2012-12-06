@@ -56,7 +56,7 @@ library
       Tests.Mars.Arbitraries
   build-depends: HTTP
              , http-conduit
-             , http-conduit-browser
+             , http-conduit-browser < 1.7
              , data-lens
              , data-lens-template
              , QuickCheck
