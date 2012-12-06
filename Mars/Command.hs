@@ -11,6 +11,7 @@ import Control.Category
 import Data.Lens.Common
 import Data.Aeson
 import Data.Maybe
+import Data.Monoid
 -- import Data.Aeson.Lens
 import qualified Data.Vector as Vector
 import Network.URL
@@ -21,7 +22,7 @@ import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 
 prependToQuery :: Query -> Query -> Query
-prependToQuery (Query a) (Query b) = Query (a ++ b)
+prependToQuery (Query a) (Query b) = Query (a `mappend` b)
 
 -- | The initial state
 initialState :: State
@@ -36,7 +37,7 @@ renderCommand :: Command -> Text.Text
 renderCommand (Get Nothing)  = Text.pack "get"
 renderCommand (Get (Just u)) = Text.append (Text.pack "get ") (Text.pack $ exportURL u)
 renderCommand (Cat [])  = Text.pack "cat"
-renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") $ map renderQuery l)
+renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") $ fmap renderQuery l)
 renderCommand (Ls Nothing)   = Text.pack "ls"
 renderCommand (Ls (Just a))  = Text.append (Text.pack "ls ") (renderQuery a)
 renderCommand (Save f)       = Text.append (Text.pack "save ") f
@@ -51,7 +52,7 @@ renderCommand (Cd a)         = Text.append (Text.pack "cd ") (renderQuery a)
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
-renderQuery (Query l) = Text.intercalate "/" $ map renderQueryItem l
+renderQuery (Query l) = Text.intercalate "/" $ fmap renderQueryItem l
 
 -- |A text version of a QueryItem
 renderQueryItem :: QueryItem -> Text.Text

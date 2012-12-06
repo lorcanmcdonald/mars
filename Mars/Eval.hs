@@ -6,6 +6,7 @@ import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
 import Data.Maybe
+import Data.Monoid
 import Network.URI (parseURI)
 import Network.URL
 import Network.HTTP.Types (status200)
@@ -22,13 +23,13 @@ import qualified Network.HTTP.Conduit as HTTP
 import Network.HTTP.Conduit.Browser
 
 run :: State -> Command -> IO State
-run s (Cat []) = idempotent s . Prelude.putStrLn . concatMap (ByteString.unpack.encodePretty) . queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
+run s (Cat []) = idempotent s . Prelude.putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
 run s (Cat l)  = idempotent s .
                      Prelude.putStrLn .
-                     ByteString.unpack $ ByteString.intercalate "\n" (concatMap formattedJSONText l)
+                     ByteString.unpack $ ByteString.intercalate "\n" (=<< formattedJSONText l)
                 where
                     formattedJSONText :: Query -> [ByteString.ByteString]
-                    formattedJSONText q = map encodePretty .
+                    formattedJSONText q = fmap encodePretty .
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
                          prependToQuery (path s) q
 run s (Ls Nothing)                  = idempotent s . printLs s $ path s
@@ -71,7 +72,7 @@ run s (Load filename) = do
                                             hPutStrLn stderr "Invalid saved state"
                                             return s
                                 Just j -> case fromJSON j of
-                                            Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " ++ err)
+                                            Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " `mappend` err)
                                             Success state -> return state
 
 idempotent :: State -> IO() -> IO State
@@ -96,15 +97,15 @@ printLs :: State -> Query -> IO()
 printLs s q = Prelude.putStrLn . Text.unpack . format $ ls (fromMaybe emptyObjectCollection (document s))  q
     where
         format :: [[Text.Text]] -> Text.Text
-        format l = Text.intercalate "\n" $ map (Text.intercalate "\n") l
+        format l = Text.intercalate "\n" $ fmap (Text.intercalate "\n") l
 
 ls :: Value -> Query -> [[Text.Text]]
-ls doc query = map asString elements
+ls doc query = fmap asString elements
             where
                 asString :: Value -> [Text.Text]
                 asString e = case e of
                         Object o -> zipWith ansiColourText [colourMap $ getChild o k | k <- Map.keys o] $ Map.keys o
-                        Array a  -> [ Text.pack $ "Array[" ++ (show.Vector.length) a ++ "]"]
+                        Array a  -> [ Text.pack $ "Array[" `mappend` (show.Vector.length) a `mappend` "]"]
                         _        -> []
                 elements :: [Value]
                 elements = queryDoc doc query
