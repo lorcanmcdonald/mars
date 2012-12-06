@@ -17,7 +17,7 @@ instance Arbitrary Text.Text where
     arbitrary = liftM Text.pack arbString
 
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] ++ ['a' .. 'z'])) `suchThat` null a
+arbString = listOf ( elements (['A'..'Z'] ++ ['a' .. 'z'])) `suchThat` null
 
 instance Arbitrary URL where
     arbitrary = liftM3 URL arbitrary arbString arbDict

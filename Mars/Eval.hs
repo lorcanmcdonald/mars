@@ -22,17 +22,17 @@ import qualified Network.HTTP.Conduit as HTTP
 import Network.HTTP.Conduit.Browser
 
 run :: State -> Command -> IO State
-run s (Cat []) = idempotent s $ Prelude.putStrLn $ concatMap (ByteString.unpack.encodePretty) $ queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
-run s (Cat l)  = idempotent s $
-                     Prelude.putStrLn $
+run s (Cat []) = idempotent s . Prelude.putStrLn . concatMap (ByteString.unpack.encodePretty) . queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
+run s (Cat l)  = idempotent s .
+                     Prelude.putStrLn .
                      ByteString.unpack $ ByteString.intercalate "\n" (concatMap formattedJSONText l)
                 where
                     formattedJSONText :: Query -> [ByteString.ByteString]
-                    formattedJSONText q = map encodePretty $
+                    formattedJSONText q = map encodePretty .
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
                          prependToQuery (path s) q
-run s (Ls Nothing)                  = idempotent s $ printLs s $ path s
-run s (Ls (Just query))             = idempotent s $ printLs s $ prependToQuery (path s) query
+run s (Ls Nothing)                  = idempotent s . printLs s $ path s
+run s (Ls (Just query))             = idempotent s . printLs s $ prependToQuery (path s) query
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
 run s (Cd query)                    = return s {path = newQuery' }
         where
@@ -44,7 +44,7 @@ run s (Cd query)                    = return s {path = newQuery' }
 run s Href           = idempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
                             Just u  -> Prelude.putStrLn $ exportURL u
-run s Pwd                      = idempotent s $ putStrLn $ Text.unpack $ renderQuery $ simplifyQuery $ path s
+run s Pwd                      = idempotent s . putStrLn . Text.unpack . renderQuery . simplifyQuery $ path s
 run s (Login loginPage inputs) = do
                             _ <- loginWithURL s loginPage inputs
                             return s
@@ -62,7 +62,7 @@ run s (Update query value) = return s'
                                             Just doc -> Just $ modifyDoc doc query value 
                                 s' = s{document = newDoc}
 run s (Save filename)              = do
-                            writeFile (Text.unpack filename) (ByteString.unpack $ encodePretty $ toJSON s)
+                            writeFile (Text.unpack filename) (ByteString.unpack . encodePretty $ toJSON s)
                             return s
 run s (Load filename) = do
                             c <- readFile (Text.unpack filename)
@@ -93,7 +93,7 @@ getWithURL s inUrl = case parseURI $ exportURL inUrl of
                              }
 
 printLs :: State -> Query -> IO()
-printLs s q = Prelude.putStrLn $ Text.unpack $ format $ ls (fromMaybe emptyObjectCollection (document s))  q
+printLs s q = Prelude.putStrLn . Text.unpack . format $ ls (fromMaybe emptyObjectCollection (document s))  q
     where
         format :: [[Text.Text]] -> Text.Text
         format l = Text.intercalate "\n" $ map (Text.intercalate "\n") l

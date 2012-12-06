@@ -69,12 +69,12 @@ getC (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
 getC _ _                       = object []
 
 setC :: QueryItem -> Value -> Value -> Value
-setC (IndexedItem i) (v) (Array a) = toJSON $ Vector.update a . Vector.fromList $ [(i, v)]
+setC (IndexedItem i) (v) (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
 setC (NamedItem n) (v) (Object o)  = toJSON $ Map.insert n v o
 setC _ _ c                   = c
 
 moveUp :: Query -> Query
-moveUp (Query q) =  Query $ reverse $ drop 1 $ reverse q
+moveUp (Query q) =  Query . reverse . drop 1 $ reverse q
 
 -- modifyDoc (A a) (Query []) _              = Left . A $ a
 -- modifyDoc (O o) (Query []) _              = Left . O $ o
@@ -83,7 +83,7 @@ moveUp (Query q) =  Query $ reverse $ drop 1 $ reverse q
 -- modifyDoc cv (Query (_:xs)) v             = modifyDoc cv (Query xs) v
 
 simplifyQuery :: Query -> Query
-simplifyQuery (Query l) = Query $ reverse $ foldr simplify [] $ reverse l
+simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
     where
         simplify :: QueryItem -> [QueryItem] -> [QueryItem]
         simplify (LevelAbove) processed    = drop 1 processed

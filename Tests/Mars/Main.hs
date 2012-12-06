@@ -1,6 +1,7 @@
 import Debug.Trace
 import Mars.Command
 import Mars.Types
+import Mars.Parser
 -- import Data.Aeson.Types
 import Tests.Mars.Arbitraries()
 import Test.Framework (defaultMain, testGroup, Test)

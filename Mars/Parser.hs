@@ -148,10 +148,10 @@ queryItem = try (do
                 _ <- string "\""
                 item <- many1 . noneOf $ "\""
                 _ <- string "\""
-                return $ NamedItem $ Text.pack item)
+                return . NamedItem $ Text.pack item)
             <|> try (do
                 item <- namedItem
-                return $ NamedItem $ Text.pack item)
+                return . NamedItem $ Text.pack item)
         <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String
