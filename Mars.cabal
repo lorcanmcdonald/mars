@@ -62,7 +62,6 @@ library
              , data-lens-template
              , QuickCheck
              , aeson
-             , aeson-lens
              , aeson-pretty
              , attoparsec
              , base >=3 && < 5
