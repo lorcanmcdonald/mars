@@ -4,6 +4,7 @@ module Tests.Mars.Arbitraries where
 
 import Control.Monad
 import Data.Aeson
+import Control.Applicative
 import Data.Monoid
 import Data.Attoparsec.Number
 import Network.URL
@@ -15,7 +16,7 @@ import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 
 instance Arbitrary Text.Text where
-    arbitrary = fmap Text.pack arbString
+    arbitrary = Text.pack <$> arbString
 
 arbString :: Gen String
 arbString = listOf ( elements (['A'..'Z'] `mappend` ['a' .. 'z'])) `suchThat` null
@@ -33,7 +34,7 @@ stupple = do
             return (x, y)
 
 instance Arbitrary URLType where
-    arbitrary = oneof [ fmap Absolute arbitrary
+    arbitrary = oneof [ Absolute <$> arbitrary
                       , return HostRelative
                       , return PathRelative
                       ]
@@ -42,25 +43,25 @@ instance Arbitrary Host where
     arbitrary = liftM3 Host arbitrary arbString arbPort
 
 instance Arbitrary Protocol where
-    arbitrary = oneof [ fmap HTTP arbitrary
-                      , fmap FTP arbitrary
+    arbitrary = oneof [ HTTP <$> arbitrary
+                      , FTP <$> arbitrary
                       ]
 
 instance Arbitrary Value where
-    arbitrary = oneof [ fmap Array arbitrary
-                      , fmap String arbitrary
-                      , fmap Number arbitrary
-                      , fmap Bool arbitrary
+    arbitrary = oneof [ Array <$> arbitrary
+                      , String <$> arbitrary
+                      , Number <$> arbitrary
+                      , Bool <$> arbitrary
                       , return Null
                       ]
 
 -- Only creates list of length four to prevent runaway data structures
 instance Arbitrary Array where
-    arbitrary = fmap (Vector.fromListN 4) $ listOf arbitrary
+    arbitrary = (Vector.fromListN 4) <$> listOf arbitrary
 
 instance Arbitrary Number where
-    arbitrary = oneof [ fmap I arbitrary
-                      , fmap D arbitrary
+    arbitrary = oneof [ I <$> arbitrary
+                      , D <$> arbitrary
                       ]
 
 arbPort :: Gen (Maybe Integer)
@@ -68,23 +69,23 @@ arbPort = oneof [ return Nothing
                  ]
 
 instance Arbitrary Command where
-    arbitrary = oneof [ fmap Get arbitrary
-                      , fmap Cat arbitrary
-                      , fmap Ls arbitrary
-                      , fmap Save arbitrary
-                      , fmap Load arbitrary
+    arbitrary = oneof [ Get <$> arbitrary
+                      , Cat <$> arbitrary
+                      , Ls <$> arbitrary
+                      , Save <$> arbitrary
+                      , Load <$> arbitrary
                       , liftM2 Update arbitrary arbitrary
-                      , fmap Cd arbitrary
+                      , Cd <$> arbitrary
                       , return Href
                       , return Pwd
                       ]
 
 instance Arbitrary Query where
-    arbitrary = suchThat (fmap Query arbitrary) (\ (Query l) -> null l)
+    arbitrary = suchThat (Query <$> arbitrary) (\ (Query l) -> null l)
 
 instance Arbitrary QueryItem where
-    arbitrary = oneof  [ fmap NamedItem arbitrary
-                       , fmap IndexedItem arbitraryPositiveInt
+    arbitrary = oneof  [ NamedItem <$> arbitrary
+                       , IndexedItem <$> arbitraryPositiveInt
                        , return WildCardItem
                        , return LevelAbove
                        ]
@@ -99,7 +100,7 @@ instance Arbitrary CookieJar where
     arbitrary = oneof []
 
 arbitraryArray :: Gen Array
-arbitraryArray = fmap Vector.fromList arbitrary
+arbitraryArray = Vector.fromList <$> arbitrary
 
 arbitraryObject :: Gen Object
-arbitraryObject = fmap Map.fromList arbitrary
+arbitraryObject = Map.fromList <$> arbitrary

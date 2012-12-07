@@ -8,6 +8,7 @@ where
 import Prelude hiding (id, (.))
 import Control.Category
 
+import Control.Applicative
 import Data.Lens.Common
 import Data.Aeson
 import Data.Maybe
@@ -36,8 +37,8 @@ initialState = State { url         = Nothing
 renderCommand :: Command -> Text.Text
 renderCommand (Get Nothing)  = Text.pack "get"
 renderCommand (Get (Just u)) = Text.append (Text.pack "get ") (Text.pack $ exportURL u)
-renderCommand (Cat [])  = Text.pack "cat"
-renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") $ fmap renderQuery l)
+renderCommand (Cat [])       = Text.pack "cat"
+renderCommand (Cat l)        = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") (renderQuery <$> l))
 renderCommand (Ls Nothing)   = Text.pack "ls"
 renderCommand (Ls (Just a))  = Text.append (Text.pack "ls ") (renderQuery a)
 renderCommand (Save f)       = Text.append (Text.pack "save ") f
@@ -52,14 +53,14 @@ renderCommand (Cd a)         = Text.append (Text.pack "cd ") (renderQuery a)
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
-renderQuery (Query l) = Text.intercalate "/" $ fmap renderQueryItem l
+renderQuery (Query l) = Text.intercalate "/" (renderQueryItem <$> l)
 
 -- |A text version of a QueryItem
 renderQueryItem :: QueryItem -> Text.Text
-renderQueryItem (NamedItem n) = n
+renderQueryItem (NamedItem n)   = n
 renderQueryItem (IndexedItem i) = Text.pack (show i)
-renderQueryItem WildCardItem = Text.pack "*"
-renderQueryItem LevelAbove = Text.pack ".."
+renderQueryItem WildCardItem    = Text.pack "*"
+renderQueryItem LevelAbove      = Text.pack ".."
 
 emptyObjectCollection :: Value
 emptyObjectCollection = object []
@@ -77,12 +78,6 @@ setC _ _ c                   = c
 moveUp :: Query -> Query
 moveUp (Query q) =  Query . reverse . drop 1 $ reverse q
 
--- modifyDoc (A a) (Query []) _              = Left . A $ a
--- modifyDoc (O o) (Query []) _              = Left . O $ o
--- modifyDoc (A a) (Query [IndexedItem x]) v = Right . A . Vector.update a . Vector.fromList $ [(x, v)]
--- modifyDoc (O o) (Query [NamedItem n]) v   = Right . O $ Map.insert n v o
--- modifyDoc cv (Query (_:xs)) v             = modifyDoc cv (Query xs) v
-
 simplifyQuery :: Query -> Query
 simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
     where
@@ -95,27 +90,6 @@ modifyDoc cv q = modifyFunc q cv
 
 queryDoc :: Value -> Query -> [Value]
 queryDoc v q = queryFunc q v
-
--- queryDoc' (simplifyQuery q) v
---     where
---         queryDoc' :: Query -> CollectionValue -> [Value]
---         queryDoc' (Query []) v'               = [ toValue v' ]
---         queryDoc' (Query (IndexedItem q':qs)) (A v') =  case (Vector.!?) v' q' of
---                                                 Nothing         -> []
---                                                 Just (Array n)  -> queryDoc' (Query qs) (A n)
---                                                 Just (Object n) -> queryDoc' (Query qs) (O n)
---                                                 Just a -> [a]
---         queryDoc' (Query (IndexedItem _: _)) (O _) = []
---         queryDoc' (Query (NamedItem q':qs)) (O v')  =  case Map.lookup q' v' of
---                                                 Nothing  -> []
---                                                 Just (Array n)  -> queryDoc' (Query qs) (A n)
---                                                 Just (Object n) -> queryDoc' (Query qs) (O n)
---                                                 Just a -> [a]
---         queryDoc' (Query (NamedItem _: _)) (A _) = []
---         queryDoc' (Query (WildCardItem:qs)) (O v')   =  concatMap (queryDoc' (Query qs)) $ mapMaybe fromValue $ Map.elems v'
---         queryDoc' (Query (WildCardItem:qs)) (A v')   =  concatMap (queryDoc' (Query qs)) $ mapMaybe fromValue $ Vector.toList v'
---         queryDoc' (Query (LevelAbove:_)) _ = [] -- This seems like a poor way to fail?
-
 
 queryFunc :: Query -> Value -> [Value]
 queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id ql ]

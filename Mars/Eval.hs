@@ -2,6 +2,7 @@
 module Mars.Eval
 where
 import Control.Arrow
+import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
@@ -32,8 +33,10 @@ run s (Cat l)  = idempotent s .
                     formattedJSONText q = fmap encodePretty .
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
                          prependToQuery (path s) q
+
 run s (Ls Nothing)                  = idempotent s . printLs s $ path s
 run s (Ls (Just query))             = idempotent s . printLs s $ prependToQuery (path s) query
+
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
 run s (Cd query)                    = return s {path = newQuery' }
         where
@@ -42,10 +45,13 @@ run s (Cd query)                    = return s {path = newQuery' }
                     _       -> newQuery
             findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
             newQuery = prependToQuery (path s) query
+
 run s Href           = idempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
                             Just u  -> Prelude.putStrLn $ exportURL u
+
 run s Pwd                      = idempotent s . putStrLn . Text.unpack . renderQuery . simplifyQuery $ path s
+
 run s (Login loginPage inputs) = do
                             _ <- loginWithURL s loginPage inputs
                             return s
@@ -56,15 +62,18 @@ run s (Get Nothing) = case url s of
 run s (Get inUrl) = case inUrl of
                             Nothing -> idempotent s (hPutStrLn stderr "Invalid URL")
                             Just u -> getWithURL s u
+
 run s (Update query value) = return s'
                             where
                                 newDoc = case document s of
                                             Nothing -> Nothing
-                                            Just doc -> Just $ modifyDoc doc query value 
+                                            Just doc -> Just $ modifyDoc doc query value
                                 s' = s{document = newDoc}
-run s (Save filename)              = do
+
+run s (Save filename) = do
                             writeFile (Text.unpack filename) (ByteString.unpack . encodePretty $ toJSON s)
                             return s
+
 run s (Load filename) = do
                             c <- readFile (Text.unpack filename)
                             case decode (ByteString.pack c) of
@@ -97,10 +106,10 @@ printLs :: State -> Query -> IO()
 printLs s q = Prelude.putStrLn . Text.unpack . format $ ls (fromMaybe emptyObjectCollection (document s))  q
     where
         format :: [[Text.Text]] -> Text.Text
-        format l = Text.intercalate "\n" $ fmap (Text.intercalate "\n") l
+        format l = Text.intercalate "\n" (Text.intercalate "\n" <$> l)
 
 ls :: Value -> Query -> [[Text.Text]]
-ls doc query = fmap asString elements
+ls doc query = asString <$> elements
             where
                 asString :: Value -> [Text.Text]
                 asString e = case e of

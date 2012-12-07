@@ -30,10 +30,10 @@ command :: forall u. ParsecT String u Identity Command
 command = keywordWithArg <|> keyword
 
 keyword :: forall u. ParsecT String u Identity Command
-keyword = (do
+keyword = try (do
             _ <- string "href"
             return Href)
-        <|> (do
+        <|> try (do
             _ <- string "pwd"
             return Pwd)
         <|> try (do
