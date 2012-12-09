@@ -8,7 +8,7 @@ import Data.Maybe
 import qualified Data.Vector as Vector
 import Network.URL
 import Mars.Types
--- import Tests.Mars.Arbitraries()
+import qualified Network.HTTP.Conduit as HTTP
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
@@ -18,9 +18,10 @@ prependToQuery (Query a) (Query b) = Query (a ++ b)
 
 -- | The initial state
 initialState :: State
-initialState = State { url      = Nothing
-                     , path     = Query []
-                     , document = Nothing
+initialState = State { url         = Nothing
+                     , path        = Query []
+                     , document    = Nothing
+                     , cookies     = HTTP.def
                      }
 
 -- |Output a command in a format similar to how it would have be entered by the user

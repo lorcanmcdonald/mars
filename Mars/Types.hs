@@ -4,6 +4,7 @@ module Mars.Types where
 import Data.Typeable
 import Data.Aeson.Types
 import Network.URL
+import Network.HTTP.Conduit
 import qualified Data.Text as Text
 
 
@@ -40,5 +41,5 @@ data Command  = Get (Maybe URL)
 data State = State   { url :: Maybe URL
                      , path :: Query
                      , document :: Maybe CollectionValue
+                     , cookies  :: CookieJar
                      }
-                     deriving (Show, Eq)
