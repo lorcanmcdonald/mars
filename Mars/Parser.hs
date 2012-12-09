@@ -30,10 +30,10 @@ command :: forall u. ParsecT String u Identity Command
 command = keywordWithArg <|> keyword
 
 keyword :: forall u. ParsecT String u Identity Command
-keyword = (do
+keyword = try (do
             _ <- string "href"
             return Href)
-        <|> (do
+        <|> try (do
             _ <- string "pwd"
             return Pwd)
         <|> try (do
@@ -98,12 +98,12 @@ keywordWithArg = try (do
         <?> "keyword and argument"
 
 queryString :: forall u. ParsecT String u Identity (String, String)
-queryString = (do
+queryString = do
             _ <- string "&"
             k <- many1 (noneOf "=")
             _ <- string "="
             v<- many1 (noneOf " ")
-            return (k, v))
+            return (k, v)
 
 uri :: forall u. ParsecT String u Identity URL
 uri = (do
@@ -148,21 +148,26 @@ queryItem = try (do
                 _ <- string "\""
                 item <- many1 . noneOf $ "\""
                 _ <- string "\""
-                return $ NamedItem $ Text.pack item)
+                return . NamedItem $ Text.pack item)
             <|> try (do
                 item <- namedItem
-                return $ NamedItem $ Text.pack item)
+                return . NamedItem $ Text.pack item)
         <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String
-namedItem = (many1 $ noneOf $ map (head . Text.unpack) [querySeparator, " "])
+namedItem = (many1 . noneOf . fmap (head . Text.unpack) $ [querySeparator, " "])
         <?> "namedItem"
 
 filename :: forall u. ParsecT String u Identity Text.Text
-filename = (do
-        f <- wspaceSeparated -- Doesn't handle files with spaces of course...
-        return $ Text.pack f)
-        <?> "filename"
+filename = try (do
+                _ <- string "\""
+                f <- many1 . noneOf $ "\""
+                _ <- string "\""
+                return . Text.pack $ f)
+            <|> try (do
+                f <- wspaceSeparated -- Doesn't handle files with spaces of course...
+                return $ Text.pack f)
+            <?> "filename"
 
 value :: forall u.  ParsecT String u Identity AesonTypes.Value
 value = (do

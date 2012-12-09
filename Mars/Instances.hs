@@ -9,7 +9,6 @@ import qualified Network.HTTP.Conduit as HTTP
 
 deriveJSON id ''Query
 deriveJSON id ''QueryItem
-deriveJSON id ''CollectionValue
 deriveJSON id ''State
 deriveJSON id ''URL
 deriveJSON id ''URLType

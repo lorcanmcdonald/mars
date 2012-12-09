@@ -2,9 +2,18 @@
 {-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE GeneralizedNewtypeDeriving #-}
 module Mars.Command
+
 where
+
+import Prelude hiding (id, (.))
+import Control.Category
+
+import Control.Applicative
+import Data.Lens.Common
 import Data.Aeson
 import Data.Maybe
+import Data.Monoid
+-- import Data.Aeson.Lens
 import qualified Data.Vector as Vector
 import Network.URL
 import Mars.Types
@@ -14,7 +23,7 @@ import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 
 prependToQuery :: Query -> Query -> Query
-prependToQuery (Query a) (Query b) = Query (a ++ b)
+prependToQuery (Query a) (Query b) = Query (a `mappend` b)
 
 -- | The initial state
 initialState :: State
@@ -28,8 +37,8 @@ initialState = State { url         = Nothing
 renderCommand :: Command -> Text.Text
 renderCommand (Get Nothing)  = Text.pack "get"
 renderCommand (Get (Just u)) = Text.append (Text.pack "get ") (Text.pack $ exportURL u)
-renderCommand (Cat [])  = Text.pack "cat"
-renderCommand (Cat l) = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") $ map renderQuery l)
+renderCommand (Cat [])       = Text.pack "cat"
+renderCommand (Cat l)        = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") (renderQuery <$> l))
 renderCommand (Ls Nothing)   = Text.pack "ls"
 renderCommand (Ls (Just a))  = Text.append (Text.pack "ls ") (renderQuery a)
 renderCommand (Save f)       = Text.append (Text.pack "save ") f
@@ -44,62 +53,49 @@ renderCommand (Cd a)         = Text.append (Text.pack "cd ") (renderQuery a)
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
-renderQuery (Query l) = Text.intercalate ("/") $ map renderQueryItem l
+renderQuery (Query l) = Text.intercalate "/" (renderQueryItem <$> l)
 
 -- |A text version of a QueryItem
 renderQueryItem :: QueryItem -> Text.Text
-renderQueryItem (NamedItem n) = n
+renderQueryItem (NamedItem n)   = n
 renderQueryItem (IndexedItem i) = Text.pack (show i)
-renderQueryItem WildCardItem = Text.pack "*"
-renderQueryItem LevelAbove = Text.pack ".."
+renderQueryItem WildCardItem    = Text.pack "*"
+renderQueryItem LevelAbove      = Text.pack ".."
 
-fromValue :: Value -> Maybe CollectionValue
-fromValue (Object o) = Just $ O o
-fromValue (Array a)  = Just $ A a
-fromValue _            = Nothing
+emptyObjectCollection :: Value
+emptyObjectCollection = object []
 
-toValue :: CollectionValue -> Value
-toValue (O o) = Object o
-toValue (A a) = Array a
+getC :: QueryItem -> Value -> Value
+getC (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
+getC (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
+getC _ _                       = object []
 
-emptyObjectCollection :: CollectionValue
-emptyObjectCollection = case object [] of
-                        Object o -> O o
-                        _ -> undefined
+setC :: QueryItem -> Value -> Value -> Value
+setC (IndexedItem i) (v) (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
+setC (NamedItem n) (v) (Object o)  = toJSON $ Map.insert n v o
+setC _ _ c                   = c
+
 moveUp :: Query -> Query
-moveUp (Query q) =  Query $ reverse $ drop 1 $ reverse q
-
-modifyDoc :: CollectionValue -> Query -> Value -> Either CollectionValue CollectionValue
-modifyDoc (A a) (Query []) _              = Left . A $ a
-modifyDoc (O o) (Query []) _              = Left . O $ o
-modifyDoc (A a) (Query [IndexedItem x]) v = Right . A . Vector.update a . Vector.fromList $ [(x, v)]
-modifyDoc (O o) (Query [NamedItem n]) v   = Right . O $ Map.insert n v o
-modifyDoc cv (Query (_:xs)) v             = modifyDoc cv (Query xs) v
+moveUp (Query q) =  Query . reverse . drop 1 $ reverse q
 
 simplifyQuery :: Query -> Query
-simplifyQuery (Query l) = Query $ reverse $ foldr simplify [] $ reverse l
+simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
     where
         simplify :: QueryItem -> [QueryItem] -> [QueryItem]
         simplify (LevelAbove) processed    = drop 1 processed
         simplify item processed   = item:processed
 
-queryDoc :: CollectionValue -> Query -> [Value]
-queryDoc v q = queryDoc' (simplifyQuery q) v
+modifyDoc :: Value -> Query -> Value -> Value
+modifyDoc cv q = modifyFunc q cv
+
+queryDoc :: Value -> Query -> [Value]
+queryDoc v q = queryFunc q v
+
+queryFunc :: Query -> Value -> [Value]
+queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id ql ]
     where
-        queryDoc' :: Query -> CollectionValue -> [Value]
-        queryDoc' (Query []) v'               = [ toValue v' ]
-        queryDoc' (Query (IndexedItem q':qs)) (A v') =  case (Vector.!?) v' q' of
-                                                Nothing         -> []
-                                                Just (Array n)  -> queryDoc' (Query qs) (A n)
-                                                Just (Object n) -> queryDoc' (Query qs) (O n)
-                                                Just a -> [a]
-        queryDoc' (Query (IndexedItem _: _)) (O _) = []
-        queryDoc' (Query (NamedItem q':qs)) (O v')  =  case Map.lookup q' v' of
-                                                Nothing  -> []
-                                                Just (Array n)  -> queryDoc' (Query qs) (A n)
-                                                Just (Object n) -> queryDoc' (Query qs) (O n)
-                                                Just a -> [a]
-        queryDoc' (Query (NamedItem _: _)) (A _) = []
-        queryDoc' (Query (WildCardItem:qs)) (O v')   =  concatMap (queryDoc' (Query qs)) $ mapMaybe fromValue $ Map.elems v'
-        queryDoc' (Query (WildCardItem:qs)) (A v')   =  concatMap (queryDoc' (Query qs)) $ mapMaybe fromValue $ Vector.toList v'
-        queryDoc' (Query (LevelAbove:_)) _ = [] -- This seems like a poor way to fail?
+        toLens i = lens (getC i) (setC i)
+modifyFunc :: Query -> Value -> Value -> Value
+modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id ql ^= v $ cv
+    where
+        toLens i = lens (getC i) (setC i)
