@@ -44,7 +44,7 @@ keyword = try (do
             return $ Get Nothing)
         <|> try (do
             _ <- string "ls"
-            return $ Ls Nothing)
+            return $ Ls (Query []))
         <?> "keyword"
 
 keywordWithArg :: forall u. ParsecT String u Identity Command
@@ -68,7 +68,7 @@ keywordWithArg = try (do
         <|> try (do
             _ <- string "ls"
             _ <- spaces
-            q <- maybeQuery
+            q <- query
             return $ Ls q)
         <|> try (do
             _ <- string "save"

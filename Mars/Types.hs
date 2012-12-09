@@ -22,7 +22,7 @@ data QueryItem = NamedItem (Text.Text)
 -- repl
 data Command  = Get (Maybe URL)
               | Cat [Query]
-              | Ls (Maybe Query)
+              | Ls Query
               | Save Text.Text
               | Load Text.Text
               | Update Query Value

@@ -34,8 +34,7 @@ run s (Cat l)  = idempotent s .
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
                          prependToQuery (path s) q
 
-run s (Ls Nothing)                  = idempotent s . printLs s $ path s
-run s (Ls (Just query))             = idempotent s . printLs s $ prependToQuery (path s) query
+run s (Ls query)             = idempotent s . printLs s $ prependToQuery (path s) query
 
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
 run s (Cd query)                    = return s {path = newQuery' }

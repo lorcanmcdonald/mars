@@ -35,18 +35,17 @@ initialState = State { url         = Nothing
 
 -- |Output a command in a format similar to how it would have be entered by the user
 renderCommand :: Command -> Text.Text
-renderCommand (Get Nothing)  = Text.pack "get"
-renderCommand (Get (Just u)) = Text.append (Text.pack "get ") (Text.pack $ exportURL u)
-renderCommand (Cat [])       = Text.pack "cat"
-renderCommand (Cat l)        = Text.append (Text.pack "cat ") (Text.intercalate (Text.pack " ") (renderQuery <$> l))
-renderCommand (Ls Nothing)   = Text.pack "ls"
-renderCommand (Ls (Just a))  = Text.append (Text.pack "ls ") (renderQuery a)
-renderCommand (Save f)       = Text.append (Text.pack "save ") f
-renderCommand (Load f)       = Text.append (Text.pack "load ") f
-renderCommand (Update q val) = Text.pack "update " |++| renderQuery q |++| Text.pack " " |++| Text.pack ( ByteString.unpack $ encode val)
-renderCommand Href           = Text.pack "href"
-renderCommand Pwd            = Text.pack "pwd"
-renderCommand (Cd a)         = Text.append (Text.pack "cd ") (renderQuery a)
+renderCommand (Get Nothing)  = "get"
+renderCommand (Get (Just u)) = "get " `mappend` (Text.pack $ exportURL u)
+renderCommand (Cat [])       = "cat"
+renderCommand (Cat l)        = "cat " `mappend` (Text.intercalate (" ") (renderQuery <$> l))
+renderCommand (Ls a)         = "ls " `mappend` (renderQuery a)
+renderCommand (Save f)       = "save " `mappend` f
+renderCommand (Load f)       = "load \"" `mappend` f `mappend` ("\"")
+renderCommand (Update q val) = "update " |++| renderQuery q |++| " " |++| Text.pack ( ByteString.unpack $ encode val)
+renderCommand Href           = "href"
+renderCommand Pwd            = "pwd"
+renderCommand (Cd a)         = "cd " `mappend` (renderQuery a)
 
 (|++|) :: Text.Text -> Text.Text -> Text.Text
 (|++|) = Text.append
