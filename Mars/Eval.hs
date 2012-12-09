@@ -165,4 +165,4 @@ loginWithURL s inUrl inputs = case parseURI $ exportURL inUrl of
                     names tree      = (tree >>> css "input" >>> getAttrValue "name")
                     values tree     = (tree >>> css "input" >>> getAttrValue "value")
                     formAction tree = (tree >>> css "form" >>> getAttrValue "action") -- TODO: We're going to assume there's one form for now
-                    doc rsp         = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . Conduit.responseBody $ rsp
+                    doc rsp         = ( readString [withParseHTML yes, withWarnings no] ) . ByteString.unpack . HTTP.responseBody $ rsp
