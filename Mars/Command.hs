@@ -36,16 +36,16 @@ initialState = State { url         = Nothing
 -- |Output a command in a format similar to how it would have be entered by the user
 renderCommand :: Command -> Text.Text
 renderCommand (Get Nothing)  = "get"
-renderCommand (Get (Just u)) = "get " `mappend` (Text.pack $ exportURL u)
+renderCommand (Get (Just u)) = "get " `mappend` Text.pack ( exportURL u)
 renderCommand (Cat [])       = "cat"
-renderCommand (Cat l)        = "cat " `mappend` (Text.intercalate (" ") (renderQuery <$> l))
-renderCommand (Ls a)         = "ls " `mappend` (renderQuery a)
+renderCommand (Cat l)        = "cat " `mappend` Text.intercalate " " (renderQuery <$> l)
+renderCommand (Ls a)         = "ls " `mappend` renderQuery a
 renderCommand (Save f)       = "save " `mappend` f
-renderCommand (Load f)       = "load \"" `mappend` f `mappend` ("\"")
+renderCommand (Load f)       = "load \"" `mappend` f `mappend` "\""
 renderCommand (Update q val) = "update " |++| renderQuery q |++| " " |++| Text.pack ( ByteString.unpack $ encode val)
 renderCommand Href           = "href"
 renderCommand Pwd            = "pwd"
-renderCommand (Cd a)         = "cd " `mappend` (renderQuery a)
+renderCommand (Cd a)         = "cd " `mappend` renderQuery a
 
 (|++|) :: Text.Text -> Text.Text -> Text.Text
 (|++|) = Text.append

@@ -19,7 +19,7 @@ instance Arbitrary Text.Text where
     arbitrary = Text.pack <$> arbString
 
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] `mappend` ['a' .. 'z'])) `suchThat` null
+arbString = listOf ( elements (['A'..'Z'] `mappend` ['a' .. 'z'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
 
 instance Arbitrary URL where
     arbitrary = liftM3 URL arbitrary arbString arbDict
@@ -81,7 +81,7 @@ instance Arbitrary Command where
                       ]
 
 instance Arbitrary Query where
-    arbitrary = suchThat (Query <$> arbitrary) (\ (Query l) -> null l)
+    arbitrary = suchThat (Query <$> arbitrary) (\ (Query l) -> not $ null l) -- TODO we are explicitly not testing empty strings here, we really should
 
 instance Arbitrary QueryItem where
     arbitrary = oneof  [ NamedItem <$> arbitrary
