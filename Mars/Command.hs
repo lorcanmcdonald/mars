@@ -39,8 +39,8 @@ renderCommand (Ls a)             = "ls "     <> renderQuery a
 renderCommand (Save f)           = "save "   <> f
 renderCommand (Load f)           = "load \"" <> f <> "\""
 renderCommand (Update q val)     = "update " <> renderQuery q <> " "  <> Text.pack ( ByteString.unpack $ encode val)
-renderCommand (Login url inputs) = "login "  
-                                                <> (Text.pack . show $ url) 
+renderCommand (Login loginURL inputs) = "login "  
+                                                <> (Text.pack . show $ loginURL) 
                                                 <> (Text.intercalate "&" $ (\ (f, s) -> Text.pack $ f <> "=" <> s) <$> inputs)
 renderCommand Href               = "href"
 renderCommand Pwd                = "pwd"

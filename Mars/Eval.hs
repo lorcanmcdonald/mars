@@ -3,6 +3,7 @@ module Mars.Eval
 where
 import Control.Arrow
 import Control.Applicative
+import Control.Monad
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
@@ -146,28 +147,33 @@ css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)
 
 loginWithURL :: State -> URL -> [(String, String)] -> IO State
-loginWithURL s url inputs = login (exportURL url) s
+loginWithURL s loginURL inputs = login s (exportURL loginURL) inputs
 
-login u s = HTTP.withManager (\manager ->
-                        browse manager $ do
+login :: State -> String -> [(String, String)] -> IO State
+login s u inputs = HTTP.withManager (\manager -> do
+                        returnedData <- (browse manager $ do
                             init_req1 <- HTTP.parseUrl u
 
                             let req1' = init_req1 { HTTP.method = "POST",
                                                     HTTP.checkStatus = \_ _ -> Nothing }
                             let post_data = []
                             let req1 = HTTP.urlEncodedBody post_data req1'
-                            resp1 <- makeRequestLbs req1
-                            if HTTP.responseStatus resp1 == status200
-                            then
-                                do
-                                    -- inputNames  <- runX . names $ doc resp1
-                                    -- inputValues <- runX . values $ doc resp1
-                                    -- action      <- runX . formAction $ doc resp1
 
-                                    cj <- getCookieJar
-                                    return s
+                            resp1 <- makeRequestLbs req1
+                            cookies <- getCookieJar
+
+                            if HTTP.responseStatus resp1 == status200
+                            then do
+                                return (cookies, Just resp1)
                             else
-                                return s)
+                                return (cookies, Nothing))
+
+
+                        case snd returnedData of
+                            Just html -> do
+                                -- inputNames  <- runX . names $ doc $ html
+                                return s
+                            Nothing -> return s)
 
                     -- HTTP.withManager $ (\ manager -> do
                     --     browse manager $ do
@@ -194,7 +200,7 @@ login u s = HTTP.withManager (\manager ->
                     --              , cookies = cookies
                     --              })
                 where
-                    names tree = tree >>> css "input" >>> getAttrValue "name"
-                    values tree = tree >>> css "input" >>> getAttrValue "value"
-                    formAction tree = tree >>> css "form" >>> getAttrValue "action"
+                    names tree      = tree >>> css "input" >>> getAttrValue "name"
+                    values tree     = tree >>> css "input" >>> getAttrValue "value"
+                    formAction tree = tree >>> css "form"  >>> getAttrValue "action"
                     doc rsp = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp

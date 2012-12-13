@@ -9,18 +9,19 @@ import Network.HTTP.Conduit
 import qualified Data.Text as Text
 
 
--- |The datatype representing the queries possible for comamnds that select items
+-- |The datatype representing the queries possible for commands that select items
 data Query = Query [ QueryItem ]
     deriving (Show, Eq)
 
 instance Monoid Query where
+    mempty = Query []
     mappend (Query a) (Query b) = Query (a <> b)
 
 data QueryItem = NamedItem (Text.Text)
                | IndexedItem (Int)
                | WildCardItem
                | LevelAbove
-    deriving (Show, Eq, Typeable)
+    deriving (Show, Eq)
 
 -- |A data type representing the primitive commands available in the Mars
 -- repl
