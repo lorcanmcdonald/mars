@@ -57,7 +57,7 @@ instance Arbitrary Value where
 
 -- Only creates list of length four to prevent runaway data structures
 instance Arbitrary Array where
-    arbitrary = (Vector.fromListN 4) <$> listOf arbitrary
+    arbitrary = Vector.fromListN 4 <$> listOf arbitrary
 
 instance Arbitrary Number where
     arbitrary = oneof [ I <$> arbitrary

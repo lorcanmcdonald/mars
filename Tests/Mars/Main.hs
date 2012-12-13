@@ -2,9 +2,10 @@ import Debug.Trace
 import Mars.Command
 import Mars.Types
 import Mars.Parser
--- import Data.Aeson.Types
+import Data.Aeson.Types
 import Tests.Mars.Arbitraries()
 import Test.Framework (defaultMain, testGroup, Test)
+import Test.QuickCheck ((==>), elements)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 
 main :: IO()
@@ -21,7 +22,7 @@ tests = [
                 , testProperty "move up shortens" prop_move_up_shorten
                 --, testProperty "commandParser and handparser the same" prop_comp_parsers
                 --, testProperty "state parse unparse" prop_state_parse
-                -- , testProperty "modifyDoc modifies Document" prop_modifyDoc_modifies
+                , testProperty "modifyDoc modifies Document" prop_modifyDoc_modifies
             ]
         ]
 
@@ -44,9 +45,10 @@ prop_move_up_shorten q = len(moveUp q) <= len q
     where
         len (Query l) = length l
 
--- prop_modifyDoc_modifies :: Value -> Query -> Value -> Bool
--- prop_modifyDoc_modifies doc q new = case modifyDoc doc q new of
---                                     Left _ ->trace (show $ queryDoc doc q) $ queryDoc doc q == [] -- If the
---                                                                    --  modification fails check to see if it
---                                                                    --  should have failed
---                                     Right updatedDoc -> queryDoc updatedDoc q == [new]
+prop_modifyDoc_modifies doc q new = (all id [isCollection doc]) ==> (queryDoc updatedDoc q == [new])
+            where
+                updatedDoc = modifyDoc doc q new
+                isCollection (Array _)  = True
+                isCollection (Object _) = True
+                isCollection _          = False
+

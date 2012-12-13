@@ -140,7 +140,7 @@ ansiColourText color t = case color of
                             Cyan    -> wrap "36" t
                             White   -> wrap "37" t
     where
-        wrap colourID text = "\ESC[" |++| colourID |++| "m" |++| text |++| "\ESC[0m"
+        wrap colourID text = "\ESC[" `mappend` colourID `mappend` "m" `mappend` text `mappend` "\ESC[0m"
 
 css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)

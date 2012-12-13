@@ -17,10 +17,10 @@ querySeparator :: Text.Text
 querySeparator = "/"
 
 parser :: Text.Text -> Either ParseError [ Command ]
-parser l = parse commandLine "(test)" $ Text.unpack l
+parser l = parse commandLine "" $ Text.unpack l
 
 parseQuery :: Text.Text -> Either ParseError Query
-parseQuery s = parse query "(unit-test)" $ Text.unpack s
+parseQuery s = parse query "" $ Text.unpack s
 
 -- | Parse a list of commands
 commandLine :: forall u. ParsecT String u Identity [Command]

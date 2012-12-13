@@ -5,22 +5,21 @@ module Mars.Command
 
 where
 
-import Prelude hiding (id, (.))
-import Control.Category
-
 import Control.Applicative
-import Data.Lens.Common
+import Control.Category
 import Data.Aeson
+import Data.HashMap.Strict (keys, elems, insert)
+import qualified Data.HashMap.Strict as Map
+import Data.Lens.Common
 import Data.Maybe
 import Data.Monoid
--- import Data.Aeson.Lens
-import qualified Data.Vector as Vector
-import Network.URL
 import Mars.Types
-import qualified Network.HTTP.Conduit as HTTP
+import Network.URL
+import Prelude hiding (id, (.))
 import qualified Data.ByteString.Lazy.Char8 as ByteString
-import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
+import qualified Data.Vector as Vector
+import qualified Network.HTTP.Conduit as HTTP
 
 prependToQuery :: Query -> Query -> Query
 prependToQuery (Query a) (Query b) = Query (a `mappend` b)
@@ -35,20 +34,18 @@ initialState = State { url         = Nothing
 
 -- |Output a command in a format similar to how it would have be entered by the user
 renderCommand :: Command -> Text.Text
-renderCommand (Get Nothing)  = "get"
-renderCommand (Get (Just u)) = "get " `mappend` Text.pack ( exportURL u)
-renderCommand (Cat [])       = "cat"
-renderCommand (Cat l)        = "cat " `mappend` Text.intercalate " " (renderQuery <$> l)
-renderCommand (Ls a)         = "ls " `mappend` renderQuery a
-renderCommand (Save f)       = "save " `mappend` f
-renderCommand (Load f)       = "load \"" `mappend` f `mappend` "\""
-renderCommand (Update q val) = "update " |++| renderQuery q |++| " " |++| Text.pack ( ByteString.unpack $ encode val)
-renderCommand Href           = "href"
-renderCommand Pwd            = "pwd"
-renderCommand (Cd a)         = "cd " `mappend` renderQuery a
-
-(|++|) :: Text.Text -> Text.Text -> Text.Text
-(|++|) = Text.append
+renderCommand (Get Nothing)      = "get"
+renderCommand (Get (Just u))     = "get "    `mappend` Text.pack ( exportURL u)
+renderCommand (Cat [])           = "cat"
+renderCommand (Cat l)            = "cat "    `mappend` Text.intercalate " " (renderQuery <$> l)
+renderCommand (Ls a)             = "ls "     `mappend` renderQuery a
+renderCommand (Save f)           = "save "   `mappend` f
+renderCommand (Load f)           = "load \"" `mappend` f `mappend` "\""
+renderCommand (Update q val)     = "update " `mappend` renderQuery q `mappend` " "  `mappend` Text.pack ( ByteString.unpack $ encode val)
+-- renderCommand (Login url inputs) = "login "  `mappend` (Text.pack . show $ url) `mappend` (Text.intercalate "&" (\ f s -> (Text.pack f, Text.pack s) <$> inputs))
+renderCommand Href               = "href"
+renderCommand Pwd                = "pwd"
+renderCommand (Cd a)             = "cd "     `mappend` renderQuery a
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
@@ -70,9 +67,11 @@ getC (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
 getC _ _                       = object []
 
 setC :: QueryItem -> Value -> Value -> Value
-setC (IndexedItem i) (v) (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
-setC (NamedItem n) (v) (Object o)  = toJSON $ Map.insert n v o
-setC _ _ c                   = c
+setC (IndexedItem i) v (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
+setC (NamedItem n) v (Object o)  = toJSON $ insert n v o
+setC WildCardItem v (Array a)    = Array $ Vector.map (\ _ -> v)  a
+setC WildCardItem v (Object a)   = Object $ Map.map (\ _ -> v)  a
+setC _ _ c                       = c
 
 moveUp :: Query -> Query
 moveUp (Query q) =  Query . reverse . drop 1 $ reverse q
@@ -98,3 +97,11 @@ modifyFunc :: Query -> Value -> Value -> Value
 modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id ql ^= v $ cv
     where
         toLens i = lens (getC i) (setC i)
+
+allQueries :: Value -> [Query]
+allQueries (Array a)    = undefined
+allQueries (Object o)   = prependToAll ((\ n -> Query [NamedItem n ]) <$> keys o) (concat $ allQueries <$> elems o)
+allQueries _            = []
+
+prependToAll :: [Query] -> [Query] -> [Query]
+prependToAll heads tails = [ prependToQuery h t | h <- heads, t <- tails ] 
