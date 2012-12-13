@@ -32,9 +32,9 @@ run s (Cat l)  = idempotent s .
                     formattedJSONText :: Query -> [ByteString.ByteString]
                     formattedJSONText q = fmap encodePretty .
                          queryDoc (fromMaybe emptyObjectCollection (document s)) $
-                         prependToQuery (path s) q
+                         path s <> q
 
-run s (Ls query)             = idempotent s . printLs s $ prependToQuery (path s) query
+run s (Ls query)             = idempotent s . printLs s $ path s <> query
 
 run s (Cd (Query (LevelAbove : _))) = return s {path = moveUp (path s)}
 run s (Cd query)                    = return s {path = newQuery' }
@@ -43,7 +43,7 @@ run s (Cd query)                    = return s {path = newQuery' }
                     [] -> path s
                     _       -> newQuery
             findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
-            newQuery = prependToQuery (path s) query
+            newQuery = path s <> query
 
 run s Href           = idempotent s $ case url s of
                             Nothing -> hPutStrLn stderr "No previous URL"
@@ -80,7 +80,7 @@ run s (Load filename) = do
                                             hPutStrLn stderr "Invalid saved state"
                                             return s
                                 Just j -> case fromJSON j of
-                                            Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " `mappend` err)
+                                            Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " <> err)
                                             Success state -> return state
 
 idempotent :: State -> IO() -> IO State
@@ -113,7 +113,7 @@ ls doc query = asString <$> elements
                 asString :: Value -> [Text.Text]
                 asString e = case e of
                         Object o -> zipWith ansiColourText [colourMap $ getChild o k | k <- Map.keys o] $ Map.keys o
-                        Array a  -> [ Text.pack $ "Array[" `mappend` (show.Vector.length) a `mappend` "]"]
+                        Array a  -> [ Text.pack $ "Array[" <> (show.Vector.length) a <> "]"]
                         _        -> []
                 elements :: [Value]
                 elements = queryDoc doc query
@@ -140,7 +140,7 @@ ansiColourText color t = case color of
                             Cyan    -> wrap "36" t
                             White   -> wrap "37" t
     where
-        wrap colourID text = "\ESC[" `mappend` colourID `mappend` "m" `mappend` text `mappend` "\ESC[0m"
+        wrap colourID text = "\ESC[" <> colourID <> "m" <> text <> "\ESC[0m"
 
 css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)

@@ -1,6 +1,7 @@
 {-#LANGUAGE DeriveDataTypeable #-}
 module Mars.Types where
 
+import Data.Monoid
 import Data.Typeable
 import Data.Aeson.Types
 import Network.URL
@@ -9,8 +10,11 @@ import qualified Data.Text as Text
 
 
 -- |The datatype representing the queries possible for comamnds that select items
-data Query = Query [QueryItem]
-    deriving (Show, Eq, Typeable)
+data Query = Query [ QueryItem ]
+    deriving (Show, Eq)
+
+instance Monoid Query where
+    mappend (Query a) (Query b) = Query (a <> b)
 
 data QueryItem = NamedItem (Text.Text)
                | IndexedItem (Int)

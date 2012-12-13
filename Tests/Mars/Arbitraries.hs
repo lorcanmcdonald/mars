@@ -19,7 +19,7 @@ instance Arbitrary Text.Text where
     arbitrary = Text.pack <$> arbString
 
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] `mappend` ['a' .. 'z'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
+arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
 
 instance Arbitrary URL where
     arbitrary = liftM3 URL arbitrary arbString arbDict
