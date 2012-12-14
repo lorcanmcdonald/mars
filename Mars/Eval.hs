@@ -3,12 +3,12 @@ module Mars.Eval
 where
 import Control.Arrow
 import Control.Applicative
-import Control.Monad
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
 import Data.Maybe
 import Data.Monoid
+import Data.Time.Clock
 import Network.URI (parseURI)
 import Network.URL
 import Network.HTTP.Types (status200)
@@ -146,61 +146,97 @@ ansiColourText color t = case color of
 css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)
 
+-- loginWithURL :: State -> URL -> [(String, String)] -> IO State
+-- loginWithURL s loginURL inputs = login s (exportURL loginURL) inputs
+
+-- login :: State -> String -> [(String, String)] -> IO State
+-- login s u inputs = do 
+--                     (cookies, landingPage) <- getURLAndCookies (HTTP.createCookieJar []) u
+--                     inputNames <- (case landingPage of
+--                         Nothing -> return []
+--                         Just html -> runX . names $ doc $ html)
+-- 
+--                     inputValues <- (case landingPage of
+--                         Nothing -> return []
+--                         Just html -> runX . values $ doc $ html)
+-- 
+--                     formActions <- (case landingPage of
+--                         Nothing -> return []
+--                         Just html -> runX . formAction $ doc $ html)
+-- 
+--                     return s
+-- 
+--                     -- HTTP.withManager $ (\ manager -> do
+--                     --     browse manager $ do
+--                     --         getReq <- HTTP.parseUrl . show $ u
+--                     --         rsp <- makeRequest getReq
+-- 
+--                     --         
+--                     --         
+--                     --         
+-- 
+--                     --         print $ inputs ++ zip inputNames inputValues
+-- 
+--                     --         postReq <- HTTP.parseUrl $ "http://localhost/" ++ ( head $ action)
+--                     --         loginRsp <- makeRequest postReq
+-- 
+--                     --         jsonReq <- HTTP.parseUrl $ "http://localhost/sla/"
+--                     --         jsonRsp <- makeRequest jsonReq
+--                     -- inputNames  <- runX . names $ doc $ html
+-- 
+--                     --         print jsonRsp
+-- 
+--                     --         return s { url = Just inUrl
+--                     --              , document = decode $ HTTP.responseBody rsp
+--                     --              , path = Query []
+--                     --              , cookies = cookies
+--                     --              })
+--                 where
+--                     names tree      = tree >>> css "input" >>> getAttrValue "name"
+--                     values tree     = tree >>> css "input" >>> getAttrValue "value"
+--                     formAction tree = tree >>> css "form"  >>> getAttrValue "action"
+--                     doc rsp = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp
+
 loginWithURL :: State -> URL -> [(String, String)] -> IO State
-loginWithURL s loginURL inputs = login s (exportURL loginURL) inputs
+loginWithURL s u overrides = do
+                            let post req formData = HTTP.urlEncodedBody formData req { HTTP.method = "POST", HTTP.checkStatus = \_ _ -> Nothing }
+                            (resp1, cj) <- HTTP.withManager (\manager -> browse manager $ do
+                                init_req1   <- HTTP.parseUrl . exportURL $ u
+                                response <- makeRequestLbs $ post init_req1 []
+                                cookies <- getCookieJar
+                                return (response, cookies))
 
-login :: State -> String -> [(String, String)] -> IO State
-login s u inputs = HTTP.withManager (\manager -> do
-                        returnedData <- (browse manager $ do
-                            init_req1 <- HTTP.parseUrl u
+                            time <- getCurrentTime
+                            formDetails <- getFormDetails resp1
+                            print formDetails
+                            login_req  <- HTTP.parseUrl . head . formActions $ formDetails
+                            (login_req', _) <- return $ HTTP.insertCookiesIntoRequest login_req cj time
+                            -- cookies  <- getCookieJar
+                            result <- HTTP.withManager (\manager -> browse manager $ do
+                                makeRequestLbs $ post login_req' []
+                                return getCookieJar)
+                            -- formURL     <- HTTP.parseUrl <$> formAction
+                            -- resp2       <- makeRequestLbs . post formURL . zip $ inputNames inputValues
+                            return s
 
-                            let req1' = init_req1 { HTTP.method = "POST",
-                                                    HTTP.checkStatus = \_ _ -> Nothing }
-                            let post_data = []
-                            let req1 = HTTP.urlEncodedBody post_data req1'
+getFormDetails resp = do
+    iNames  <- runX . names . doc $ resp
+    iValues <- runX . values . doc $ resp
+    actions  <- runX . formAction . doc $ resp
+    return FormDetails { inputNames  = iNames
+                         , inputValues = iValues
+                         , formActions = actions
+                         }
 
-                            resp1 <- makeRequestLbs req1
-                            cookies <- getCookieJar
+data FormDetails = FormDetails { inputNames  :: [String]
+                               , inputValues :: [String]
+                               , formActions  :: [String] }
+                    deriving (Show)
 
-                            if HTTP.responseStatus resp1 == status200
-                            then do
-                                return (cookies, Just resp1)
-                            else
-                                return (cookies, Nothing))
-
-
-                        case snd returnedData of
-                            Just html -> do
-                                -- inputNames  <- runX . names $ doc $ html
-                                return s
-                            Nothing -> return s)
-
-                    -- HTTP.withManager $ (\ manager -> do
-                    --     browse manager $ do
-                    --         getReq <- HTTP.parseUrl . show $ u
-                    --         rsp <- makeRequest getReq
-
-                    --         
-                    --         
-                    --         
-
-                    --         print $ inputs ++ zip inputNames inputValues
-
-                    --         postReq <- HTTP.parseUrl $ "http://localhost/" ++ ( head $ action)
-                    --         loginRsp <- makeRequest postReq
-
-                    --         jsonReq <- HTTP.parseUrl $ "http://localhost/sla/"
-                    --         jsonRsp <- makeRequest jsonReq
-
-                    --         print jsonRsp
-
-                    --         return s { url = Just inUrl
-                    --              , document = decode $ HTTP.responseBody rsp
-                    --              , path = Query []
-                    --              , cookies = cookies
-                    --              })
-                where
-                    names tree      = tree >>> css "input" >>> getAttrValue "name"
-                    values tree     = tree >>> css "input" >>> getAttrValue "value"
-                    formAction tree = tree >>> css "form"  >>> getAttrValue "action"
-                    doc rsp = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp
+names           :: ArrowXml cat => cat a XmlTree -> cat a String
+names tree      = tree >>> css "input" >>> getAttrValue "name"
+values          :: ArrowXml cat => cat a XmlTree -> cat a String
+values tree     = tree >>> css "input" >>> getAttrValue "value"
+formAction      :: ArrowXml cat => cat a XmlTree -> cat a String
+formAction tree = tree >>> css "form"  >>> getAttrValue "action"
+doc rsp         = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp
