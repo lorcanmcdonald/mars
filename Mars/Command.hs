@@ -41,7 +41,7 @@ renderCommand (Load f)           = "load \"" <> f <> "\""
 renderCommand (Update q val)     = "update " <> renderQuery q <> " "  <> Text.pack ( ByteString.unpack $ encode val)
 renderCommand (Login loginURL inputs) = "login "  
                                                 <> (Text.pack . show $ loginURL) 
-                                                <> Text.intercalate "&" $ (\ (f, s) -> Text.pack $ f <> "=" <> s) <$> inputs
+                                                <> Text.intercalate "&" ((\ (f, s) -> Text.pack $ f <> "=" <> s) <$> inputs)
 renderCommand Href               = "href"
 renderCommand Pwd                = "pwd"
 renderCommand (Cd a)             = "cd "     <> renderQuery a

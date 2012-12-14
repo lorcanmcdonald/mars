@@ -1,3 +1,4 @@
+import Data.Attoparsec
 import Debug.Trace
 import Mars.Command
 import Mars.Types
@@ -28,17 +29,19 @@ tests = [
 
 prop_command_parse :: Command -> Bool
 prop_command_parse c = case parser (renderCommand c) of
-                Left _      -> False
-                Right []    -> False
-                Right (x:_) -> x == c
+                Fail _ _ _   -> False
+                Partial _    -> False
+                Done _ []    -> False
+                Done _ (x:_) -> x == c
 
 --prop_state_parse :: State -> Bool
 --prop_state_parse state = state == (decode $ encode state)
 
 prop_query_parse :: Query -> Bool
 prop_query_parse q = case parseQuery (renderQuery q) of
-                Left _ -> False
-                Right qry  -> qry == q
+                Fail _ _ _ -> False
+                Partial _  -> False
+                Done _ qry -> qry == q
 
 prop_move_up_shorten :: Query -> Bool
 prop_move_up_shorten q = len(moveUp q) <= len q

@@ -85,6 +85,7 @@ executable mars
   main-is: Main.hs
   build-depends: Mars
                  , base >=3 && < 5
+                 , attoparsec
                  , text
                  , network
   if os(windows)
@@ -100,6 +101,7 @@ Test-suite test-mars
 
     ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
     Build-depends: QuickCheck
+                  , attoparsec
                   , base >=3 && < 5
                   , test-framework
                   , test-framework-quickcheck2
