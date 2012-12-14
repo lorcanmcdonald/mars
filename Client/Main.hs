@@ -2,7 +2,6 @@
 module Main
 where
 import Control.Monad
-import Data.Attoparsec
 import Mars.Command
 import Mars.Eval
 import Mars.Types
@@ -64,11 +63,10 @@ readEvalPrintLoop state = do
 
 eval :: State -> Text.Text -> IO State
 eval s input = case parser input of
-            Fail _ _ err -> do
+            Left err -> do
                         print err
                         return s
-            Partial _ -> undefined
-            Done _ [] -> return s
-            Done _ (x:_) -> do
-                            -- print x
-                            run s x
+            Right [] -> return s
+            Right (x:_) -> do
+                        -- print x
+                        run s x

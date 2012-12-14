@@ -20,11 +20,18 @@ querySeparator :: Text.Text
 querySeparator = "/"
 
 -- parser :: Text.Text -> Either ParseError [ Command ]
-parser :: Text.Text -> Result [Command]
-parser l = parse commandLine l
+parser :: Text.Text -> Either Text.Text [Command]
+parser l = case parse commandLine l of
+            Partial f -> case f "" of 
+                Fail _ _ reason -> Left . Text.pack $ reason
+                Done _ result -> Right result
 
 -- parseQuery :: Text.Text -> Either ParseError Query
-parseQuery s = parse query s
+parseQuery :: Text.Text -> Either Text.Text Query
+parseQuery s = case parse query s of
+                Partial f -> case f "" of
+                    Fail _ _ reason -> Left . Text.pack $ reason
+                    Done _ result -> Right result
 
 -- | Parse a list of commands
 -- commandLine :: forall u. ParsecT String u Identity [Command]
