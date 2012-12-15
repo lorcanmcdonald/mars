@@ -6,17 +6,19 @@ import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
+import Data.Generics.Aliases
 import Data.Maybe
 import Data.Monoid
 import Data.Time.Clock
 import Network.URI (parseURI)
 import Network.URL
-import Network.HTTP.Types (status200)
+-- import Network.HTTP.Types (status200)
 import Mars.Command
 import Mars.Instances ()
 import Mars.Types
 import System.IO
 import Text.XML.HXT.Core (XmlTree, multi, hasName, ArrowXml, withParseHTML, withWarnings, readString, yes, no, runX, getAttrValue)
+import qualified Data.ByteString.Char8 as OtherByteString
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
@@ -53,8 +55,10 @@ run s Href           = idempotent s $ case url s of
 run s Pwd                      = idempotent s . putStrLn . Text.unpack . renderQuery . simplifyQuery $ path s
 
 run s (Login loginPage inputs) = do
-                            _ <- loginWithURL s loginPage inputs
-                            return s
+                            s' <- loginWithURL s loginPage inputs
+                            -- print res
+                            print "Ok"
+                            return s'
 
 run s (Get Nothing) = case url s of
                                 Nothing -> idempotent s (hPutStrLn stderr "No previous URL")
@@ -199,44 +203,60 @@ css tag = multi (hasName tag)
 
 loginWithURL :: State -> URL -> [(String, String)] -> IO State
 loginWithURL s u overrides = do
-                            let post req formData = HTTP.urlEncodedBody formData req { HTTP.method = "POST", HTTP.checkStatus = \_ _ -> Nothing }
                             (resp1, cj) <- HTTP.withManager (\manager -> browse manager $ do
                                 init_req1   <- HTTP.parseUrl . exportURL $ u
                                 response <- makeRequestLbs $ post init_req1 []
-                                cookies <- getCookieJar
-                                return (response, cookies))
+                                sessionCookies <- getCookieJar
+                                return (response, sessionCookies))
 
                             time <- getCurrentTime
                             formDetails <- getFormDetails resp1
+                            combinedInputs <- return . map toByteStringPair .filter notDefined $ [(k, (lookup k overrides) `orElse` (lookup k $ inputs formDetails))
+                                                                 | k <- fst <$> inputs formDetails]
+
                             print formDetails
                             login_req  <- HTTP.parseUrl . head . formActions $ formDetails
                             (login_req', _) <- return $ HTTP.insertCookiesIntoRequest login_req cj time
                             -- cookies  <- getCookieJar
-                            result <- HTTP.withManager (\manager -> browse manager $ do
-                                makeRequestLbs $ post login_req' []
-                                return getCookieJar)
+                            _ <- HTTP.withManager (\manager -> browse manager $ do
+                                -- _ <- return . makeRequestLbs $ post login_req' combinedInputs
+                                finalCookies <- getCookieJar
+                                return finalCookies)
+
                             -- formURL     <- HTTP.parseUrl <$> formAction
                             -- resp2       <- makeRequestLbs . post formURL . zip $ inputNames inputValues
                             return s
+        where
+            post :: Monad m => HTTP.Request m -> [(OtherByteString.ByteString, OtherByteString.ByteString)] -> HTTP.Request m
+            post req formData = HTTP.urlEncodedBody formData (req { HTTP.method = "POST", HTTP.checkStatus = \_ _ -> Nothing })
 
+            notDefined :: (a, Maybe b) -> Bool
+            notDefined (_, Just a) = True
+            notDefined (_, Nothing) = False
+
+            toByteStringPair :: (String, Maybe String) -> (ByteString.ByteString, ByteString.ByteString)
+            toByteStringPair (a, Just b) = (ByteString.pack a, ByteString.pack b)
+            toByteStringPair (a, Nothing) = (ByteString.pack a,"")
+
+
+getFormDetails :: HTTP.Response ByteString.ByteString -> IO FormDetails
 getFormDetails resp = do
     iNames  <- runX . names . doc $ resp
     iValues <- runX . values . doc $ resp
     actions  <- runX . formAction . doc $ resp
-    return FormDetails { inputNames  = iNames
-                         , inputValues = iValues
+    return FormDetails { inputs  = zip iNames iValues
                          , formActions = actions
                          }
+    where
+        names           :: ArrowXml cat => cat a XmlTree -> cat a String
+        names tree      = tree >>> css "input" >>> getAttrValue "name"
+        values          :: ArrowXml cat => cat a XmlTree -> cat a String
+        values tree     = tree >>> css "input" >>> getAttrValue "value"
+        formAction      :: ArrowXml cat => cat a XmlTree -> cat a String
+        formAction tree = tree >>> css "form"  >>> getAttrValue "action"
+        doc rsp         = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp
 
-data FormDetails = FormDetails { inputNames  :: [String]
-                               , inputValues :: [String]
+data FormDetails = FormDetails { inputs  :: [(String, String)]
                                , formActions  :: [String] }
                     deriving (Show)
 
-names           :: ArrowXml cat => cat a XmlTree -> cat a String
-names tree      = tree >>> css "input" >>> getAttrValue "name"
-values          :: ArrowXml cat => cat a XmlTree -> cat a String
-values tree     = tree >>> css "input" >>> getAttrValue "value"
-formAction      :: ArrowXml cat => cat a XmlTree -> cat a String
-formAction tree = tree >>> css "form"  >>> getAttrValue "action"
-doc rsp         = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp

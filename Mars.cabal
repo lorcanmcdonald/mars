@@ -60,6 +60,7 @@ library
              , regex-posix == 0.95.1
              , data-lens
              , data-lens-template
+             , syb
              , QuickCheck
              , aeson
              , aeson-pretty

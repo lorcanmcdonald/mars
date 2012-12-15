@@ -29,6 +29,7 @@ testTTY :: IO Bool
 testTTY = return True
 #endif
 #ifndef WINDOWS
+testTTY :: IO Bool
 testTTY = hIsTerminalDevice stdin
 #endif
 
