@@ -150,57 +150,6 @@ ansiColourText color t = case color of
 css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)
 
--- loginWithURL :: State -> URL -> [(String, String)] -> IO State
--- loginWithURL s loginURL inputs = login s (exportURL loginURL) inputs
-
--- login :: State -> String -> [(String, String)] -> IO State
--- login s u inputs = do 
---                     (cookies, landingPage) <- getURLAndCookies (HTTP.createCookieJar []) u
---                     inputNames <- (case landingPage of
---                         Nothing -> return []
---                         Just html -> runX . names $ doc $ html)
--- 
---                     inputValues <- (case landingPage of
---                         Nothing -> return []
---                         Just html -> runX . values $ doc $ html)
--- 
---                     formActions <- (case landingPage of
---                         Nothing -> return []
---                         Just html -> runX . formAction $ doc $ html)
--- 
---                     return s
--- 
---                     -- HTTP.withManager $ (\ manager -> do
---                     --     browse manager $ do
---                     --         getReq <- HTTP.parseUrl . show $ u
---                     --         rsp <- makeRequest getReq
--- 
---                     --         
---                     --         
---                     --         
--- 
---                     --         print $ inputs ++ zip inputNames inputValues
--- 
---                     --         postReq <- HTTP.parseUrl $ "http://localhost/" ++ ( head $ action)
---                     --         loginRsp <- makeRequest postReq
--- 
---                     --         jsonReq <- HTTP.parseUrl $ "http://localhost/sla/"
---                     --         jsonRsp <- makeRequest jsonReq
---                     -- inputNames  <- runX . names $ doc $ html
--- 
---                     --         print jsonRsp
--- 
---                     --         return s { url = Just inUrl
---                     --              , document = decode $ HTTP.responseBody rsp
---                     --              , path = Query []
---                     --              , cookies = cookies
---                     --              })
---                 where
---                     names tree      = tree >>> css "input" >>> getAttrValue "name"
---                     values tree     = tree >>> css "input" >>> getAttrValue "value"
---                     formAction tree = tree >>> css "form"  >>> getAttrValue "action"
---                     doc rsp = readString [withParseHTML yes, withWarnings no] . ByteString.unpack . HTTP.responseBody $ rsp
-
 loginWithURL :: State -> URL -> [(String, String)] -> IO State
 loginWithURL s u overrides = do
                             (resp1, cj) <- HTTP.withManager (\manager -> browse manager $ do
@@ -219,12 +168,10 @@ loginWithURL s u overrides = do
                             (login_req', _) <- return $ HTTP.insertCookiesIntoRequest login_req cj time
                             -- cookies  <- getCookieJar
                             _ <- HTTP.withManager (\manager -> browse manager $ do
-                                -- _ <- return . makeRequestLbs $ post login_req' combinedInputs
+                                _ <- makeRequestLbs $ post login_req' combinedInputs
                                 finalCookies <- getCookieJar
                                 return finalCookies)
 
-                            -- formURL     <- HTTP.parseUrl <$> formAction
-                            -- resp2       <- makeRequestLbs . post formURL . zip $ inputNames inputValues
                             return s
         where
             post :: Monad m => HTTP.Request m -> [(OtherByteString.ByteString, OtherByteString.ByteString)] -> HTTP.Request m
@@ -234,9 +181,9 @@ loginWithURL s u overrides = do
             notDefined (_, Just a) = True
             notDefined (_, Nothing) = False
 
-            toByteStringPair :: (String, Maybe String) -> (ByteString.ByteString, ByteString.ByteString)
-            toByteStringPair (a, Just b) = (ByteString.pack a, ByteString.pack b)
-            toByteStringPair (a, Nothing) = (ByteString.pack a,"")
+            toByteStringPair :: (String, Maybe String) -> (OtherByteString.ByteString, OtherByteString.ByteString)
+            toByteStringPair (a, Just b) = (OtherByteString.pack a, OtherByteString.pack b)
+            toByteStringPair (a, Nothing) = (OtherByteString.pack a,"")
 
 
 getFormDetails :: HTTP.Response ByteString.ByteString -> IO FormDetails
