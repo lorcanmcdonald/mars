@@ -160,7 +160,7 @@ loginWithURL s u overrides = do
 
                             time <- getCurrentTime
                             formDetails <- getFormDetails resp1
-                            combinedInputs <- return . map toByteStringPair .filter notDefined $ [(k, lookup k overrides `orElse` lookup k $ inputs formDetails)
+                            combinedInputs <- return . map toByteStringPair .filter notDefined $ [(k, lookup k overrides `orElse` (lookup k $ inputs formDetails))
                                                                  | k <- fst <$> inputs formDetails]
 
                             print formDetails
