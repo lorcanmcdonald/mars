@@ -55,30 +55,28 @@ library
       Mars.Instances
       Tests.Mars.Arbitraries
   build-depends: HTTP
-             , http-conduit
+             , http-conduit < 5.5
              , http-conduit-browser < 1.7
              , regex-posix == 0.95.1
-             , data-lens
-             , data-lens-template
-             , syb
-             , QuickCheck
-             , aeson
-             , aeson-pretty
-             , attoparsec
+             , data-lens < 2.11
+             , data-lens-template < 2.2
+             , syb < 0.4
+             , QuickCheck < 3.1
+             , aeson < 0.7
+             , aeson-pretty < 0.7
+             , attoparsec < 0.11
              , base >=3 && < 5
-             , bytestring
-             , data-lens
-             , lenses
-             , hxt
-             , network
-             , parsec
-             , text
-             , http-types
-             , time
-             , transformers
-             , unordered-containers
-             , url
-             , vector
+             , bytestring < 1
+             , hxt < 9.4
+             , network < 2.5
+             , parsec < 3.2
+             , text < 0.12
+             , http-types < 0.8
+             , time < 1.5
+             , transformers < 0.4
+             , unordered-containers < 0.3
+             , url < 2.2
+             , vector < 1
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -fllvm
 
 executable mars
