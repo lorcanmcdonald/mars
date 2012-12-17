@@ -54,8 +54,8 @@ run s Href           = idempotent s $ case url s of
 
 run s Pwd                      = idempotent s . putStrLn . Text.unpack . renderQuery . simplifyQuery $ path s
 
-run s (Login loginPage inputs) = do
-                            s' <- loginWithURL s loginPage inputs
+run s (Login loginPage inputList) = do
+                            s' <- loginWithURL s loginPage inputList
                             -- print res
                             print "Ok"
                             return s'
@@ -160,19 +160,18 @@ loginWithURL s u overrides = do
 
                             time <- getCurrentTime
                             formDetails <- getFormDetails resp1
-                            combinedInputs <- return . map toByteStringPair .filter notDefined $ [(k, (lookup k overrides) `orElse` (lookup k $ inputs formDetails))
+                            combinedInputs <- return . map toByteStringPair .filter notDefined $ [(k, lookup k overrides `orElse` lookup k $ inputs formDetails)
                                                                  | k <- fst <$> inputs formDetails]
 
                             print formDetails
-                            login_req  <- HTTP.parseUrl . head . formActions $ formDetails
+                            login_req  <- HTTP.parseUrl . ("http://localhost/" ++ ). head . formActions $ formDetails
                             (login_req', _) <- return $ HTTP.insertCookiesIntoRequest login_req cj time
                             -- cookies  <- getCookieJar
-                            _ <- HTTP.withManager (\manager -> browse manager $ do
+                            finalCookies <- HTTP.withManager (\manager -> browse manager $ do
                                 _ <- makeRequestLbs $ post login_req' combinedInputs
-                                finalCookies <- getCookieJar
-                                return finalCookies)
+                                getCookieJar)
 
-                            return s
+                            return s{cookies = finalCookies}
         where
             post :: Monad m => HTTP.Request m -> [(OtherByteString.ByteString, OtherByteString.ByteString)] -> HTTP.Request m
             post req formData = HTTP.urlEncodedBody formData (req { HTTP.method = "POST", HTTP.checkStatus = \_ _ -> Nothing })
