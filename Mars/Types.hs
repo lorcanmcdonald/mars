@@ -38,7 +38,7 @@ data Command  = Get (Maybe URL)
               deriving (Show, Eq, Typeable)
 
 -- | The state of the replay program
-data State = State   { url      :: Maybe URL
+data MarsState = MarsState   { url      :: Maybe URL
                      , path     :: Query
                      , document :: Maybe Value
                      , cookies  :: CookieJar

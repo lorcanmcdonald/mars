@@ -93,8 +93,8 @@ instance Arbitrary QueryItem where
 arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (> 0)
 
-instance Arbitrary State where
-    arbitrary = liftM4 State arbitrary arbitrary arbitrary arbitrary
+instance Arbitrary MarsState where
+    arbitrary = liftM4 MarsState arbitrary arbitrary arbitrary arbitrary
 
 instance Arbitrary CookieJar where
     arbitrary = oneof []

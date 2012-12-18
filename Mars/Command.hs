@@ -22,8 +22,8 @@ import qualified Data.Vector as Vector
 import qualified Network.HTTP.Conduit as HTTP
 
 -- | The initial state
-initialState :: State
-initialState = State { url         = Nothing
+initialState :: MarsState
+initialState = MarsState { url         = Nothing
                      , path        = Query []
                      , document    = Nothing
                      , cookies     = HTTP.def

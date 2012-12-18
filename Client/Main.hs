@@ -48,10 +48,10 @@ main =  do
                 _ <- exec initialState (Text.lines input)
                 return ()
 
-exec :: State -> [Text.Text] -> IO State
+exec :: MarsState -> [Text.Text] -> IO MarsState
 exec = foldM eval
 
-readEvalPrintLoop :: State -> IO ()
+readEvalPrintLoop :: MarsState -> IO ()
 readEvalPrintLoop state = do
     maybeLine <- readline "> "
     hFlush stdout
@@ -62,7 +62,7 @@ readEvalPrintLoop state = do
                 state' <- eval state $ Text.pack line
                 readEvalPrintLoop state'
 
-eval :: State -> Text.Text -> IO State
+eval :: MarsState -> Text.Text -> IO MarsState
 eval s input = case parser input of
             Left err -> do
                         print err

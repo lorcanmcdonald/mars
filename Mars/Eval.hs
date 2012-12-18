@@ -26,7 +26,7 @@ import qualified Data.Vector as Vector
 import qualified Network.HTTP.Conduit as HTTP
 import Network.HTTP.Conduit.Browser
 
-run :: State -> Command -> IO State
+run :: MarsState -> Command -> IO MarsState
 run s (Cat []) = idempotent s . Prelude.putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
 run s (Cat l)  = idempotent s .
                      Prelude.putStrLn .
@@ -88,12 +88,12 @@ run s (Load filename) = do
                                             Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " <> err)
                                             Success state -> return state
 
-idempotent :: State -> IO() -> IO State
+idempotent :: MarsState -> IO() -> IO MarsState
 idempotent s io = do
                 io
                 return s
 
-getWithURL :: State -> URL -> IO State
+getWithURL :: MarsState -> URL -> IO MarsState
 getWithURL s inUrl = case parseURI $ exportURL inUrl of
                 Nothing -> do
                     hPutStrLn stderr "Invalid URL"
@@ -106,7 +106,7 @@ getWithURL s inUrl = case parseURI $ exportURL inUrl of
                              , path = Query []
                              }
 
-printLs :: State -> Query -> IO()
+printLs :: MarsState -> Query -> IO()
 printLs s q = Prelude.putStrLn . Text.unpack . format $ ls (fromMaybe emptyObjectCollection (document s))  q
     where
         format :: [[Text.Text]] -> Text.Text
@@ -150,13 +150,16 @@ ansiColourText color t = case color of
 css :: ArrowXml a => String -> a XmlTree XmlTree
 css tag = multi (hasName tag)
 
-loginWithURL :: State -> URL -> [(String, String)] -> IO State
+loginWithURL :: MarsState -> URL -> [(String, String)] -> IO MarsState
 loginWithURL s u overrides = do
                             (resp1, cj) <- HTTP.withManager (\manager -> browse manager $ do
                                 init_req1   <- HTTP.parseUrl . exportURL $ u
                                 response <- makeRequestLbs $ post init_req1 []
                                 sessionCookies <- getCookieJar
+
                                 return (response, sessionCookies))
+
+                            print cj
 
                             time <- getCurrentTime
                             formDetails <- getFormDetails resp1
@@ -164,12 +167,14 @@ loginWithURL s u overrides = do
                                                                  | k <- fst <$> inputs formDetails]
 
                             print formDetails
-                            login_req  <- HTTP.parseUrl . ("http://localhost/" ++ ). head . formActions $ formDetails
+                            login_req  <- HTTP.parseUrl . ("http://slatoolkit.serviceframe.com/" ++ ). head . formActions $ formDetails
                             (login_req', _) <- return $ HTTP.insertCookiesIntoRequest login_req cj time
                             -- cookies  <- getCookieJar
                             finalCookies <- HTTP.withManager (\manager -> browse manager $ do
                                 _ <- makeRequestLbs $ post login_req' combinedInputs
                                 getCookieJar)
+
+                            print finalCookies
 
                             return s{cookies = finalCookies}
         where

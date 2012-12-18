@@ -56,14 +56,14 @@ library
       Tests.Mars.Arbitraries
   build-depends: HTTP
              , http-conduit < 5.5
-             , http-conduit-browser < 1.7
+             , http-conduit-browser < 1.9
              , regex-posix == 0.95.1
              , data-lens < 2.11
              , data-lens-template < 2.2
              , syb < 0.4
              , QuickCheck < 3.1
              , aeson < 0.7
-             , aeson-pretty < 0.7
+             , aeson-pretty < 0.8
              , attoparsec < 0.11
              , base >=3 && < 5
              , bytestring < 1
