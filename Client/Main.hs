@@ -1,12 +1,15 @@
 {-#LANGUAGE OverloadedStrings, CPP #-}
 module Main
 where
+import Control.Applicative
 import Control.Monad
+import Data.Monoid
 import Mars.Command
 import Mars.Eval
-import Mars.Types
 import Mars.Parser
+import Mars.Types
 import Network (withSocketsDo)
+import Options.Applicative
 #ifndef WINDOWS
 import System.Console.Readline
 #endif
@@ -33,13 +36,24 @@ testTTY :: IO Bool
 testTTY = hIsTerminalDevice stdin
 #endif
 
+data Mars = Mars { noninteractive :: Bool }
+
 main :: IO()
-main =  do
+main = execParser opts >>= runWithOptions
+    where
+        parser = Mars <$>
+                    switch (short 'n'
+                        <> long "noninteractive"
+                        <> help "Force noninteractive mode")
+        opts = info parser mempty
+
+
+runWithOptions opts = do
     hSetEncoding stdout utf8
     isTTY <- testTTY
     hFlush stdout
     -- withSocketsDo $ readEvalPrintLoop initialState
-    if isTTY
+    if isTTY && noninteractive opts /= True
         then -- Start an interactive session
             withSocketsDo $ readEvalPrintLoop initialState
         else -- Read from stdin

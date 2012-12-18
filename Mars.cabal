@@ -84,9 +84,10 @@ executable mars
   main-is: Main.hs
   build-depends: Mars
                  , base >=3 && < 5
-                 , attoparsec
-                 , text
-                 , network
+                 , optparse-applicative < 0.5
+                 , attoparsec < 0.11
+                 , text < 0.12
+                 , network < 2.5
   if os(windows)
     Cpp-options: -DWINDOWS
   else
@@ -100,13 +101,13 @@ Test-suite test-mars
 
     ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
     Build-depends: QuickCheck
-                  , attoparsec
+                  , attoparsec < 0.11
                   , base >=3 && < 5
                   , test-framework
                   , test-framework-quickcheck2
-                  , text
-                  , Mars
-                  , aeson
+                  , text < 0.12
+                  , Mars < 0.2
+                  , aeson < 0.7
 
 source-repository head
     type: git

@@ -1,8 +1,8 @@
 {-#LANGUAGE OverloadedStrings, DoAndIfThenElse #-}
 module Mars.Eval
 where
-import Control.Arrow
 import Control.Applicative
+import Control.Arrow
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
@@ -10,12 +10,12 @@ import Data.Generics.Aliases
 import Data.Maybe
 import Data.Monoid
 import Data.Time.Clock
-import Network.URI (parseURI)
-import Network.URL
--- import Network.HTTP.Types (status200)
 import Mars.Command
 import Mars.Instances ()
 import Mars.Types
+import Network.HTTP.Conduit.Browser
+import Network.URI (parseURI)
+import Network.URL
 import System.IO
 import Text.XML.HXT.Core (XmlTree, multi, hasName, ArrowXml, withParseHTML, withWarnings, readString, yes, no, runX, getAttrValue)
 import qualified Data.ByteString.Char8 as OtherByteString
@@ -24,7 +24,6 @@ import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import qualified Network.HTTP.Conduit as HTTP
-import Network.HTTP.Conduit.Browser
 
 run :: MarsState -> Command -> IO MarsState
 run s (Cat []) = idempotent s . Prelude.putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
