@@ -1,40 +1,36 @@
 {-#LANGUAGE OverloadedStrings, RankNTypes#-}
 module Mars.Parser where
-import Control.Applicative
 import Control.Monad
+import Data.Attoparsec (parseOnly)
 import Network.URL
 import Mars.Types
-import Data.Attoparsec.Text 
-import qualified Data.Attoparsec as AP
+import Data.Functor.Identity
+import Text.ParserCombinators.Parsec
+import Text.Parsec.Prim (ParsecT)
 import qualified Data.Aeson.Parser as AesonParser
 import qualified Data.Aeson.Types as AesonTypes
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Text as Text
 
+
 -- | The character used to separate query items when entered on the commandline
 querySeparator :: Text.Text
 querySeparator = "/"
 
--- parser :: Text.Text -> Either ParseError [ Command ]
-parser :: Text.Text -> Either Text.Text [Command]
-parser l = case parseOnly commandLine l of
-                Left str -> Left . Text.pack $ str
-                Right r -> Right r
+parser :: Text.Text -> Either ParseError [ Command ]
+parser l = parse commandLine "" $ Text.unpack l
 
--- parseQuery :: Text.Text -> Either ParseError Query
-parseQuery :: Text.Text -> Either Text.Text Query
-parseQuery s = case parseOnly query s of
-                Left str -> Left . Text.pack $ str
-                Right r -> Right r
+parseQuery :: Text.Text -> Either ParseError Query
+parseQuery s = parse query "" $ Text.unpack s
 
 -- | Parse a list of commands
-commandLine :: Parser [Command]
-commandLine = many1 command
+commandLine :: forall u. ParsecT String u Identity [Command]
+commandLine = sepBy command (char '|')
 
-command :: Parser Command
+command :: forall u. ParsecT String u Identity Command
 command = keywordWithArg <|> keyword
 
-keyword :: Parser Command
+keyword :: forall u. ParsecT String u Identity Command
 keyword = try (do
             _ <- string "href"
             return Href)
@@ -52,49 +48,49 @@ keyword = try (do
             return $ Ls (Query []))
         <?> "keyword"
 
-keywordWithArg :: Parser Command
+keywordWithArg :: forall u. ParsecT String u Identity Command
 keywordWithArg = try (do
             _ <- string "get"
-            _ <- skipSpace
+            _ <- spaces
             u <- optionalURI
             return $ Get u)
         <|> try (do
             _ <- string "login"
-            _ <- skipSpace
+            _ <- spaces
             u <- uri
-            _ <- skipSpace
+            _ <- spaces
             q <- many queryString
             return $ Login u q)
         <|> try (do
             _ <- string "cat"
-            _ <- skipSpace
+            _ <- spaces
             q <- query `sepBy` string " "
             return $ Cat q)
         <|> try (do
             _ <- string "ls"
-            _ <- skipSpace
+            _ <- spaces
             q <- query
             return $ Ls q)
         <|> try (do
             _ <- string "save"
-            _ <- skipSpace 
+            _ <- spaces 
             f <- filename
             return $ Save f)
         <|> try (do
             _ <- string "load"
-            _ <- skipSpace 
+            _ <- spaces 
             f <- filename
             return $ Load f)
         <|> try(do
             _ <- string "update"
-            _ <- skipSpace
+            _ <- spaces
             q <- query
-            _ <- skipSpace
+            _ <- spaces
             v <- value
             return $ Update q v)
         <|> try (do
             _ <- string "cd"
-            _ <- skipSpace
+            _ <- spaces
             q <- query
             return $ Cd q)
         <|> try (do
@@ -102,45 +98,44 @@ keywordWithArg = try (do
             return $ Cd (Query []) )
         <?> "keyword and argument"
 
-queryString :: Parser (String, String)
+queryString :: forall u. ParsecT String u Identity (String, String)
 queryString = do
             _ <- string "&"
-            k <- many1 (notChar '=')
+            k <- many1 (noneOf "=")
             _ <- string "="
-            v<- many1 (notChar ' ')
+            v<- many1 (noneOf " ")
             return (k, v)
 
-uri :: Parser URL
+uri :: forall u. ParsecT String u Identity URL
 uri = (do
-        s <- many1 (notChar ' ')
+        s <- many1 (noneOf " ")
         case importURL s of
                 Nothing -> mzero
                 Just u -> return u
         )
         <?> "URI"
-
-optionalURI :: Parser (Maybe URL)
+optionalURI :: forall u. ParsecT String u Identity (Maybe URL)
 optionalURI = (do
-        s <- many1 (notChar ' ')
+        s <- many1 (noneOf " ")
         return $ importURL s)
         <?> "optional URI"
 
-maybeQuery :: Parser (Maybe Query)
+maybeQuery :: forall u. ParsecT String u Identity (Maybe Query)
 maybeQuery = try (do
                     q <- query
                     return $ Just q)
         <|> return Nothing
         <?> "optional query"
 
-query :: Parser Query
+query :: forall u. ParsecT String u Identity Query
 query = (do
-        items <- queryItem `sepBy` string querySeparator
+        items <- queryItem `sepBy` string (Text.unpack querySeparator)
         case items of
             [] -> mzero
             _  -> return $ Query items)
         <?> "query"
 
-queryItem :: Parser QueryItem
+queryItem :: forall u. ParsecT String u Identity QueryItem
 queryItem = try (do
                 _ <- string ".."
                 return LevelAbove)
@@ -152,22 +147,22 @@ queryItem = try (do
                 return $ IndexedItem (read item))
             <|> try (do
                 _ <- string "\""
-                item <- many1 . notChar $ '"'
+                item <- many1 . noneOf $ "\""
                 _ <- string "\""
-                return . NamedItem . Text.pack $ item)
+                return . NamedItem $ Text.pack item)
             <|> try (do
                 item <- namedItem
-                return . NamedItem . Text.pack $ item)
+                return . NamedItem $ Text.pack item)
         <?> "queryItem"
 
-namedItem :: Parser String
-namedItem = (many1 . notChar . Text.head $ querySeparator)
+namedItem :: forall u. ParsecT String u Identity String
+namedItem = (many1 . noneOf . fmap (head . Text.unpack) $ [querySeparator, " "])
         <?> "namedItem"
 
-filename :: Parser Text.Text
+filename :: forall u. ParsecT String u Identity Text.Text
 filename = try (do
                 _ <- string "\""
-                f <- many1 . notChar $ '"'
+                f <- many1 . noneOf $ "\""
                 _ <- string "\""
                 return . Text.pack $ f)
             <|> try (do
@@ -175,13 +170,13 @@ filename = try (do
                 return $ Text.pack f)
             <?> "filename"
 
-value :: Parser AesonTypes.Value
+value :: forall u.  ParsecT String u Identity AesonTypes.Value
 value = (do
         v <- wspaceSeparated
-        case AP.parseOnly AesonParser.value (ByteString.pack v) of
+        case parseOnly AesonParser.value (ByteString.pack v) of
             Left _ -> mzero
             Right val -> return val)
         <?> "simple JSON Value"
 
-wspaceSeparated :: Parser String
-wspaceSeparated = many1 (notChar ' ') <?> "token"
+wspaceSeparated :: forall u. ParsecT String u Identity String
+wspaceSeparated = many1 (noneOf " ") <?> "token"
