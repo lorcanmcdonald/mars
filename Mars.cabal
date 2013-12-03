@@ -55,9 +55,6 @@ library
       Mars.Instances
       Tests.Mars.Arbitraries
   build-depends: HTTP
-             , http-conduit < 5.5
-             , http-conduit-browser < 1.9
-             , regex-posix == 0.95.1
              , data-lens < 2.11
              , data-lens-template < 2.2
              , syb < 0.4
@@ -67,12 +64,8 @@ library
              , attoparsec < 0.11
              , base >=3 && < 5
              , bytestring < 1
-             , hxt < 9.4
-             , network < 2.5
              , parsec < 3.2
              , text < 0.12
-             , http-types < 0.8
-             , time < 1.5
              , transformers < 0.4
              , unordered-containers < 0.3
              , url < 2.2
@@ -84,10 +77,11 @@ executable mars
   main-is: Main.hs
   build-depends: Mars
                  , base >=3 && < 5
+                 , bytestring < 1
                  , optparse-applicative < 0.5
                  , attoparsec < 0.11
                  , text < 0.12
-                 , network < 2.5
+                 , aeson < 0.7
   if os(windows)
     Cpp-options: -DWINDOWS
   else

@@ -2,7 +2,6 @@
 module Mars.Parser where
 import Control.Monad
 import Data.Attoparsec (parseOnly)
-import Network.URL
 import Mars.Types
 import Data.Functor.Identity
 import Text.ParserCombinators.Parsec
@@ -32,17 +31,11 @@ command = keywordWithArg <|> keyword
 
 keyword :: forall u. ParsecT String u Identity Command
 keyword = try (do
-            _ <- string "href"
-            return Href)
-        <|> try (do
             _ <- string "pwd"
             return Pwd)
         <|> try (do
             _ <- string "cat"
             return $ Cat [])
-        <|> try (do
-            _ <- string "get"
-            return $ Get Nothing)
         <|> try (do
             _ <- string "ls"
             return $ Ls (Query []))
@@ -50,18 +43,6 @@ keyword = try (do
 
 keywordWithArg :: forall u. ParsecT String u Identity Command
 keywordWithArg = try (do
-            _ <- string "get"
-            _ <- spaces
-            u <- optionalURI
-            return $ Get u)
-        <|> try (do
-            _ <- string "login"
-            _ <- spaces
-            u <- uri
-            _ <- spaces
-            q <- many queryString
-            return $ Login u q)
-        <|> try (do
             _ <- string "cat"
             _ <- spaces
             q <- query `sepBy` string " "
@@ -73,12 +54,12 @@ keywordWithArg = try (do
             return $ Ls q)
         <|> try (do
             _ <- string "save"
-            _ <- spaces 
+            _ <- spaces
             f <- filename
             return $ Save f)
         <|> try (do
             _ <- string "load"
-            _ <- spaces 
+            _ <- spaces
             f <- filename
             return $ Load f)
         <|> try(do
@@ -105,20 +86,6 @@ queryString = do
             _ <- string "="
             v<- many1 (noneOf " ")
             return (k, v)
-
-uri :: forall u. ParsecT String u Identity URL
-uri = (do
-        s <- many1 (noneOf " ")
-        case importURL s of
-                Nothing -> mzero
-                Just u -> return u
-        )
-        <?> "URI"
-optionalURI :: forall u. ParsecT String u Identity (Maybe URL)
-optionalURI = (do
-        s <- many1 (noneOf " ")
-        return $ importURL s)
-        <?> "optional URI"
 
 maybeQuery :: forall u. ParsecT String u Identity (Maybe Query)
 maybeQuery = try (do
@@ -180,3 +147,5 @@ value = (do
 
 wspaceSeparated :: forall u. ParsecT String u Identity String
 wspaceSeparated = many1 (noneOf " ") <?> "token"
+
+jsonParser = AesonParser.value

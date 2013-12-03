@@ -7,10 +7,8 @@ import Data.Aeson
 import Control.Applicative
 import Data.Monoid
 import Data.Attoparsec.Number
-import Network.URL
 import Mars.Types
 import Test.QuickCheck
-import Network.HTTP.Conduit
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
@@ -21,9 +19,6 @@ instance Arbitrary Text.Text where
 arbString :: Gen String
 arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
 
-instance Arbitrary URL where
-    arbitrary = liftM3 URL arbitrary arbString arbDict
-
 arbDict :: Gen [(String, String)]
 arbDict = listOf stupple
 
@@ -32,20 +27,6 @@ stupple = do
             x <- arbString
             y <- arbString
             return (x, y)
-
-instance Arbitrary URLType where
-    arbitrary = oneof [ Absolute <$> arbitrary
-                      , return HostRelative
-                      , return PathRelative
-                      ]
-
-instance Arbitrary Host where
-    arbitrary = liftM3 Host arbitrary arbString arbPort
-
-instance Arbitrary Protocol where
-    arbitrary = oneof [ HTTP <$> arbitrary
-                      , FTP <$> arbitrary
-                      ]
 
 instance Arbitrary Value where
     arbitrary = oneof [ Array <$> arbitrary
@@ -69,14 +50,12 @@ arbPort = oneof [ return Nothing
                  ]
 
 instance Arbitrary Command where
-    arbitrary = oneof [ Get <$> arbitrary
-                      , Cat <$> arbitrary
+    arbitrary = oneof [ Cat <$> arbitrary
                       , Ls <$> arbitrary
                       , Save <$> arbitrary
                       , Load <$> arbitrary
                       , liftM2 Update arbitrary arbitrary
                       , Cd <$> arbitrary
-                      , return Href
                       , return Pwd
                       ]
 
@@ -94,10 +73,7 @@ arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (> 0)
 
 instance Arbitrary MarsState where
-    arbitrary = liftM4 MarsState arbitrary arbitrary arbitrary arbitrary
-
-instance Arbitrary CookieJar where
-    arbitrary = oneof []
+    arbitrary = liftM2 MarsState arbitrary arbitrary
 
 arbitraryArray :: Gen Array
 arbitraryArray = Vector.fromList <$> arbitrary

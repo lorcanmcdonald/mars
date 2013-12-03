@@ -14,35 +14,25 @@ import Data.Lens.Common
 import Data.Maybe
 import Data.Monoid
 import Mars.Types
-import Network.URL
 import Prelude hiding (id, (.))
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
-import qualified Network.HTTP.Conduit as HTTP
 
 -- | The initial state
 initialState :: MarsState
-initialState = MarsState { url         = Nothing
-                     , path        = Query []
-                     , document    = Nothing
-                     , cookies     = HTTP.def
-                     }
+initialState = MarsState { path        = Query []
+                         , document    = Nothing
+                         }
 
 -- |Output a command in a format similar to how it would have be entered by the user
 renderCommand :: Command -> Text.Text
-renderCommand (Get Nothing)      = "get"
-renderCommand (Get (Just u))     = "get "    <> Text.pack ( exportURL u)
 renderCommand (Cat [])           = "cat"
 renderCommand (Cat l)            = "cat "    <> Text.intercalate " " (renderQuery <$> l)
 renderCommand (Ls a)             = "ls "     <> renderQuery a
 renderCommand (Save f)           = "save "   <> f
 renderCommand (Load f)           = "load \"" <> f <> "\""
 renderCommand (Update q val)     = "update " <> renderQuery q <> " "  <> Text.pack ( ByteString.unpack $ encode val)
-renderCommand (Login loginURL inputs) = "login "  
-                                                <> (Text.pack . show $ loginURL) 
-                                                <> Text.intercalate "&" ((\ (f, s) -> Text.pack $ f <> "=" <> s) <$> inputs)
-renderCommand Href               = "href"
 renderCommand Pwd                = "pwd"
 renderCommand (Cd a)             = "cd "     <> renderQuery a
 
