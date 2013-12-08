@@ -1,3 +1,4 @@
+module Tests.Mars.Main where
 import Data.Aeson
 import Data.Vector (singleton)
 import Data.Monoid
@@ -16,7 +17,7 @@ main = defaultMain tests
 
 
 tests :: TestTree
-tests = testGroup "Martian Tests" [queryProperties]
+tests = testGroup "Martian Tests" [queryProperties, unitTests]
 
 queryProperties :: TestTree
 queryProperties = testGroup "Query Tests"
@@ -25,6 +26,12 @@ queryProperties = testGroup "Query Tests"
                 , testProperty "move up shortens" prop_move_up_shorten
                 , testProperty "modifyDoc modifies Document" prop_modifyDoc_modifies
             ]
+
+unitTests :: TestTree
+unitTests = testGroup "Unit Tests"
+          [ testCase "Can query array" $
+            (queryDoc (Array $ singleton ["1"]) (Query [IndexedItem 0])) @?= (Array $ ["1"])
+          ]
 
 prop_command_parse :: Command -> Bool
 prop_command_parse c = case parser (renderCommand c) of

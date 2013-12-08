@@ -47,7 +47,8 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-    exposed-modules:
+  Hs-Source-Dirs: src/
+  exposed-modules:
       Mars.Command
       Mars.Parser
       Mars.Eval
@@ -72,7 +73,7 @@ library
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -fllvm
 
 executable mars
-  Hs-Source-Dirs: Client
+  Hs-Source-Dirs: src/Client
   main-is: Main.hs
   build-depends: Mars
                  , base >=3 && < 5
@@ -88,7 +89,7 @@ executable mars
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
 
 Test-suite test-mars
-    Hs-Source-Dirs: Tests/Mars
+    Hs-Source-Dirs: src/Tests/Mars
     type: exitcode-stdio-1.0
     Main-is: Main.hs
 
