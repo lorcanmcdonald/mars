@@ -92,7 +92,7 @@ readEvalPrintLoop state = bracketOnError (initializeInput defaultSettings)
                 Just "quit" -> return ()
                 Just input -> do
                                 state' <- eval state $ Text.pack input
-                                loop hd state
+                                loop hd state'
 
 eval :: MarsState -> Text.Text -> IO MarsState
 eval s input = case parser input of
