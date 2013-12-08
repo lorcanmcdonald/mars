@@ -54,8 +54,7 @@ library
       Mars.Types
       Mars.Instances
       Tests.Mars.Arbitraries
-  build-depends: HTTP
-             , data-lens < 2.11
+  build-depends: data-lens < 2.11
              , data-lens-template < 2.2
              , syb < 0.4
              , QuickCheck < 3.1
@@ -78,14 +77,14 @@ executable mars
   build-depends: Mars
                  , base >=3 && < 5
                  , bytestring < 1
-                 , optparse-applicative < 0.5
+                 , optparse-applicative < 0.8
                  , attoparsec < 0.11
+                 , haskeline < 0.8
                  , text < 0.12
                  , aeson < 0.7
   if os(windows)
     Cpp-options: -DWINDOWS
-  else
-    build-depends: readline
+
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
 
 Test-suite test-mars
@@ -97,8 +96,10 @@ Test-suite test-mars
     Build-depends: QuickCheck
                   , attoparsec < 0.11
                   , base >=3 && < 5
-                  , test-framework
-                  , test-framework-quickcheck2
+                  , tasty-quickcheck
+                  , tasty-hunit
+                  , vector < 0.11
+                  , tasty < 0.5
                   , text < 0.12
                   , Mars < 0.2
                   , aeson < 0.7

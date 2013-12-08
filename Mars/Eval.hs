@@ -34,7 +34,7 @@ run s (Cd query)                    = return s {path = newQuery' }
         where
             newQuery' = case findItem of
                     [] -> path s
-                    _       -> newQuery
+                    _  -> newQuery
             findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
             newQuery = path s <> query
 

@@ -1,6 +1,5 @@
 -- |Types representing items entered at the Mars command line
 {-#LANGUAGE OverloadedStrings #-}
-{-#LANGUAGE GeneralizedNewtypeDeriving #-}
 module Mars.Command
 
 where
@@ -58,8 +57,8 @@ getC _ _                       = object []
 setC :: QueryItem -> Value -> Value -> Value
 setC (IndexedItem i) v (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
 setC (NamedItem n) v (Object o)  = toJSON $ insert n v o
-setC WildCardItem v (Array a)    = Array $ Vector.map (\ _ -> v)  a
-setC WildCardItem v (Object a)   = Object $ Map.map (\ _ -> v)  a
+setC WildCardItem v (Array a)    = Array $ Vector.map (const v)  a
+setC WildCardItem v (Object a)   = Object $ Map.map (const v)  a
 setC _ _ c                       = c
 
 moveUp :: Query -> Query
@@ -82,6 +81,7 @@ queryFunc :: Query -> Value -> [Value]
 queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id ql ]
     where
         toLens i = lens (getC i) (setC i)
+
 modifyFunc :: Query -> Value -> Value -> Value
 modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id ql ^= v $ cv
     where

@@ -10,9 +10,9 @@ import Mars.Eval
 import Mars.Parser
 import Mars.Types
 import Options.Applicative
-#ifndef WINDOWS
-import System.Console.Readline
-#endif
+import System.Console.Haskeline
+import System.Console.Haskeline.IO
+import Control.Exception
 import System.IO as SIO
 import Data.Text.IO as TIO
 import qualified Data.ByteString.Lazy.Char8 as ByteString
@@ -56,9 +56,9 @@ runWithOptions opts = do
     jsonString <- openFileOrStdin . jsonFilename $ opts
     hFlush stdout
 
-    if isTTY && noninteractive opts /= True
+    if isTTY && not (noninteractive opts)
         then -- Start an interactive session
-            readEvalPrintLoop $ initialState { document = json2Doc $ jsonString }
+            readEvalPrintLoop $ initialState { document = json2Doc jsonString }
 
         else
             do
@@ -69,25 +69,30 @@ runWithOptions opts = do
         json2Doc :: ByteString.ByteString -> Maybe Value
         json2Doc = decode
 
-openFileOrStdin :: String -> IO (ByteString.ByteString)
+openFileOrStdin :: String -> IO ByteString.ByteString
 openFileOrStdin fname = do
-    handle <- openFile fname ReadMode
-    contents <- SIO.hGetContents handle
+    fileHandle <- openFile fname ReadMode
+    contents <- SIO.hGetContents fileHandle
     return . ByteString.pack $ contents
 
 exec :: MarsState -> [Text.Text] -> IO MarsState
 exec = foldM eval
 
 readEvalPrintLoop :: MarsState -> IO ()
-readEvalPrintLoop state = do
-    maybeLine <- readline "> "
-    hFlush stdout
-    case maybeLine of
-        Nothing     -> return ()
-        Just line   -> do
-                addHistory line
-                state' <- eval state $ Text.pack line
-                readEvalPrintLoop state'
+readEvalPrintLoop state = bracketOnError (initializeInput defaultSettings)
+            cancelInput -- This will only be called if an exception such
+                            -- as a SigINT is received.
+            (\hd -> loop hd state >> closeInput hd)
+    where
+        loop :: InputState -> MarsState -> IO ()
+        loop hd state = do
+            minput <- queryInput hd (getInputLine "> ")
+            case minput of
+                Nothing -> return ()
+                Just "quit" -> return ()
+                Just input -> do
+                                state' <- eval state $ Text.pack input
+                                loop hd state
 
 eval :: MarsState -> Text.Text -> IO MarsState
 eval s input = case parser input of
