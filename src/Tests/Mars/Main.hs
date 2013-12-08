@@ -1,12 +1,10 @@
-module Tests.Mars.Main where
 import Data.Aeson
 import Data.Vector (singleton)
-import Data.Monoid
+import qualified Data.Text as Text
 import Debug.Trace
 import Mars.Command
 import Mars.Types
 import Mars.Parser
-import Data.Aeson.Types
 import Tests.Mars.Arbitraries()
 import Test.Tasty
 import Test.Tasty.QuickCheck as QC
@@ -17,7 +15,7 @@ main = defaultMain tests
 
 
 tests :: TestTree
-tests = testGroup "Martian Tests" [queryProperties, unitTests]
+tests = testGroup "Martian Tests" [ unitTests, queryProperties]
 
 queryProperties :: TestTree
 queryProperties = testGroup "Query Tests"
@@ -30,7 +28,7 @@ queryProperties = testGroup "Query Tests"
 unitTests :: TestTree
 unitTests = testGroup "Unit Tests"
           [ testCase "Can query array" $
-            (queryDoc (Array $ singleton ["1"]) (Query [IndexedItem 0])) @?= (Array $ ["1"])
+            queryDoc (Array . singleton . String . Text.pack $ "1") (Query [IndexedItem 0]) @?= [String . Text.pack $ "1"]
           ]
 
 prop_command_parse :: Command -> Bool
