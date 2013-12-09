@@ -1,7 +1,6 @@
 -- |Types representing items entered at the Mars command line
 {-#LANGUAGE OverloadedStrings #-}
 module Mars.Command
-
 where
 
 import Control.Applicative
