@@ -1,12 +1,19 @@
 -- |Types representing items entered at the Mars command line
 {-#LANGUAGE OverloadedStrings #-}
 module Mars.Command
+(renderCommand
+, renderQuery
+, queryDoc
+, modifyDoc
+, moveUp
+, simplifyQuery)
+
 where
 
 import Control.Applicative
 import Control.Category
 import Data.Aeson
-import Data.HashMap.Strict (keys, elems, insert)
+import Data.HashMap.Strict (insert)
 import qualified Data.HashMap.Strict as Map
 import Data.Lens.Common
 import Data.Maybe
@@ -16,12 +23,6 @@ import Prelude hiding (id, (.))
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
-
--- | The initial state
-initialState :: MarsState
-initialState = MarsState { path        = Query []
-                         , document    = Nothing
-                         }
 
 -- |Output a command in a format similar to how it would have be entered by the user
 renderCommand :: Command -> Text.Text
@@ -44,9 +45,6 @@ renderQueryItem (NamedItem n)   = n
 renderQueryItem (IndexedItem i) = Text.pack (show i)
 renderQueryItem WildCardItem    = Text.pack "*"
 renderQueryItem LevelAbove      = Text.pack ".."
-
-emptyObjectCollection :: Value
-emptyObjectCollection = object []
 
 getC :: QueryItem -> Value -> Value
 getC (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
@@ -85,11 +83,3 @@ modifyFunc :: Query -> Value -> Value -> Value
 modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id ql ^= v $ cv
     where
         toLens i = lens (getC i) (setC i)
-
-allQueries :: Value -> [Query]
-allQueries (Array a)    = prependToAll ((\ n -> Query [IndexedItem n ]) <$> [0 .. Vector.length a]) (concat $ allQueries <$> Vector.toList a)
-allQueries (Object o)   = prependToAll ((\ n -> Query [NamedItem n ]) <$> keys o) (concat $ allQueries <$> elems o)
-allQueries _            = []
-
-prependToAll :: [Query] -> [Query] -> [Query]
-prependToAll heads tails = [ h <> t | h <- heads, t <- tails ] 

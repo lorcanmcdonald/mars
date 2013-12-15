@@ -5,7 +5,6 @@ import Control.Applicative
 import Control.Monad
 import Data.Monoid
 import Data.Aeson
-import Mars.Command
 import Mars.Eval
 import Mars.Parser
 import Mars.Types
@@ -38,6 +37,12 @@ testTTY = hIsTerminalDevice stdin
 #endif
 
 data Mars = Mars { jsonFilename :: String, noninteractive :: Bool }
+
+-- | The initial state
+initialState :: MarsState
+initialState = MarsState { path        = Query []
+                         , document    = Nothing
+                         }
 
 main :: IO()
 main = execParser opts >>= runWithOptions
