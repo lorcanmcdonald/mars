@@ -70,7 +70,7 @@ library
              , unordered-containers < 0.3
              , url < 2.2
              , vector < 1
-  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -fllvm
+  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall
 
 executable mars
   Hs-Source-Dirs: src/Client
@@ -86,21 +86,22 @@ executable mars
   if os(windows)
     Cpp-options: -DWINDOWS
 
-  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
+  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded
 
 Test-suite test-mars
     Hs-Source-Dirs: src/Tests/Mars
     type: exitcode-stdio-1.0
     Main-is: Main.hs
 
-    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -optl -threaded -fllvm
+    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded
     Build-depends: QuickCheck
                   , attoparsec < 0.11
                   , base >=3 && < 5
                   , tasty-quickcheck
+                  , unordered-containers < 0.3
                   , tasty-hunit
                   , vector < 0.11
-                  , tasty < 0.5
+                  , tasty == 0.8.*
                   , text < 0.12
                   , Mars < 0.2
                   , aeson < 0.7
