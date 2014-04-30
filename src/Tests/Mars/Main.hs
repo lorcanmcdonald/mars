@@ -39,7 +39,7 @@ unitTests = testGroup "Unit Tests"
             modifyDoc (Array (Vector.fromList [Number 1, Number 2, Number 3])) (Query [IndexedItem 2]) (Number 4) @?= Array (Vector.fromList [Number 1, Number 2, Number 4])
           ]
 
-testNestedArray = queryDoc value query @?= [ "b"]
+testNestedArray = queryDoc value query @?= [ "a"]
     where
         value = Array (Vector.fromList [Array (Vector.fromList ["a"])])
         query = Query [IndexedItem 0, IndexedItem 0]
