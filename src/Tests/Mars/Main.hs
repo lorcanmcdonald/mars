@@ -2,7 +2,6 @@
 import Data.Aeson
 import qualified Data.Vector  as Vector
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Text as Text
 import Debug.Trace
 import Mars.Command
 import Mars.Types
@@ -28,15 +27,17 @@ queryProperties = testGroup "Query Tests"
 
 unitTests :: TestTree
 unitTests = testGroup "Unit Tests"
-          [ testCase "Can query array" $
+          [ testCase "Can query long array" $
             queryDoc (Array . Vector.fromList $ [ "1", "2", "3", "4"])
                      (Query [IndexedItem 3]) @?= ["4"]
-          , testCase "Can query long array" $
+          , testCase "Can query array" $
             queryDoc (Array . Vector.singleton $ "1")
                      (Query [IndexedItem 0]) @?= ["1"]
           , testCase "Can query nested arrays" testNestedArray
           , testCase "Modify document" $
-            modifyDoc (Array (Vector.fromList [Number 1, Number 2, Number 3])) (Query [IndexedItem 2]) (Number 4) @?= Array (Vector.fromList [Number 1, Number 2, Number 4])
+            modifyDoc (Array (Vector.fromList [Number 1, Number 2, Number 3]))
+                      (Query [IndexedItem 2]) (Number 4)
+                  @?=  Array (Vector.fromList [Number 1, Number 2, Number 4])
           ]
 
 testNestedArray = queryDoc value query @?= [ "a"]
@@ -46,19 +47,12 @@ testNestedArray = queryDoc value query @?= [ "a"]
 
 testNestedObject = queryDoc value query @?= [ "b"]
     where
-        value = Object (
-            HashMap.fromList
-            [
-                ("a", Object (
-                    HashMap.fromList [
-                        ("b", "Test")
-                    ]
-                ))
-            ])
+        value = Object .  HashMap.fromList $ [
+                ("a", Object . HashMap.fromList $ [ ("b", "Test") ]) ]
         query = Query [NamedItem "a", NamedItem "b"]
 
 prop_command_parse :: Command -> Bool
-prop_command_parse c = case parser (renderCommand c) of
+prop_command_parse c = case parser . renderCommand $ c of
                 Left _      -> trace (show . renderCommand $ c) False
                 Right []    -> trace (show . renderCommand $ c) False
                 Right (x:_) -> x == c

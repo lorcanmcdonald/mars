@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.Mars.Arbitraries where
 
-import Control.Monad
 import Data.Aeson
 import Control.Applicative
 import Data.Monoid
@@ -17,23 +16,20 @@ instance Arbitrary Text.Text where
     arbitrary = Text.pack <$> arbString
 
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
+arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'] <> ['0' .. '9'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
 
 arbDict :: Gen [(String, String)]
 arbDict = listOf stupple
 
 stupple :: Gen (String, String)
-stupple = do
-            x <- arbString
-            y <- arbString
-            return (x, y)
+stupple = (,) <$> arbString <*> arbString
 
 instance Arbitrary Value where
     arbitrary = oneof [ Array <$> arbitrary
                       , String <$> arbitrary
                       , Number <$> arbitrary
                       , Bool <$> arbitrary
-                      , return Null
+                      , pure Null
                       ]
 
 -- Only creates list of length four to prevent runaway data structures
@@ -46,17 +42,16 @@ instance Arbitrary Number where
                       ]
 
 arbPort :: Gen (Maybe Integer)
-arbPort = oneof [ return Nothing
-                 ]
+arbPort = oneof [ pure Nothing ]
 
 instance Arbitrary Command where
     arbitrary = oneof [ Cat <$> arbitrary
                       , Ls <$> arbitrary
                       , Save <$> arbitrary
                       , Load <$> arbitrary
-                      , liftM2 Update arbitrary arbitrary
+                      , Update <$> arbitrary <*> arbitrary
                       , Cd <$> arbitrary
-                      , return Pwd
+                      , pure Pwd
                       ]
 
 instance Arbitrary Query where
@@ -65,15 +60,15 @@ instance Arbitrary Query where
 instance Arbitrary QueryItem where
     arbitrary = oneof  [ NamedItem <$> arbitrary
                        , IndexedItem <$> arbitraryPositiveInt
-                       , return WildCardItem
-                       , return LevelAbove
+                       , pure WildCardItem
+                       , pure LevelAbove
                        ]
 
 arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (> 0)
 
 instance Arbitrary MarsState where
-    arbitrary = liftM2 MarsState arbitrary arbitrary
+    arbitrary = MarsState <$> arbitrary <*> arbitrary
 
 arbitraryArray :: Gen Array
 arbitraryArray = Vector.fromList <$> arbitrary
