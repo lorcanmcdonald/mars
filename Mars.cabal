@@ -55,7 +55,7 @@ library
       Mars.Types
       Mars.Instances
       Tests.Mars.Arbitraries
-  build-depends: data-lens < 2.11
+  build-depends: lens
              , data-lens-template < 2.2
              , syb < 0.4
              , QuickCheck < 3.1

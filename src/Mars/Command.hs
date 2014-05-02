@@ -1,5 +1,5 @@
 -- |Types representing items entered at the Mars command line
-{-#LANGUAGE OverloadedStrings #-}
+{-#LANGUAGE OverloadedStrings, Rank2Types #-}
 module Mars.Command
 (renderCommand
 , renderQuery
@@ -15,7 +15,7 @@ import Control.Category
 import Data.Aeson
 import Data.HashMap.Strict (insert)
 import qualified Data.HashMap.Strict as Map
-import Data.Lens.Common
+import Control.Lens
 import Data.Maybe
 import Data.Monoid
 import Mars.Types
@@ -58,16 +58,17 @@ simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
         simplify item processed   = item:processed
 
 modifyDoc :: Value -> Query -> Value -> Value
-modifyDoc cv q v = (queryLens q) ^= v $ cv
+modifyDoc v q cv = set (queryLens q) v $ cv
 
 queryDoc :: Value -> Query -> [Value]
 queryDoc v q = [v ^. (queryLens q) ]
 
-queryLens :: Query -> Lens Value Value
-queryLens (Query items) = foldr ((.) . toLens) id $ reverse items
-    where
-        toLens i = lens (get i) (set i)
+queryLens :: Query -> Lens' Value Value
+queryLens (Query items) = foldr ((.) . queryItemLens) id $ items
 
+queryItemLens :: QueryItem -> Lens' Value Value
+queryItemLens item = lens (get item) (set item)
+    where
         get :: QueryItem -> Value -> Value
         get (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
         get (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
