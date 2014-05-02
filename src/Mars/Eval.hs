@@ -18,23 +18,24 @@ import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 
 run :: MarsState -> Command -> IO MarsState
-run s (Cat queries)        = idempotent s $ cat s queries
-run s Pwd                  = idempotent s $ pwd s
-run s (Ls query)           = idempotent s $ ls s query
+run s (Cat queries)        = s <$ cat s queries
+run s Pwd                  = s <$ pwd s
+run s (Ls query)           = s <$ ls s query
 run s (Cd query)           = cd s query
 run s (Update query value) = update s query value
 run s (Save filename)      = save s filename
 run s (Load filename)      = load s filename
 
+getDocument s = (fromMaybe (object []) (document s))
+
 cat :: MarsState -> [Query] -> IO ()
-cat s [] = putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (fromMaybe emptyObjectCollection (document s)) $ path s
+cat s [] = putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (getDocument s) $ path s
 cat s l  = putStrLn .
                      ByteString.unpack $ ByteString.intercalate "\n" ((=<<) formattedJSONText l)
                 where
                     formattedJSONText :: Query -> [ByteString.ByteString]
                     formattedJSONText q = fmap encodePretty .
-                         queryDoc (fromMaybe emptyObjectCollection (document s)) $
-                         path s <> q
+                         queryDoc (getDocument s) $ path s <> q
 
 cd :: MarsState -> Query -> IO MarsState
 cd s (Query (LevelAbove : _)) = return s {path = moveUp (path s)}
@@ -43,7 +44,7 @@ cd s query                    = return s {path = newQuery' }
             newQuery' = case findItem of
                     [] -> path s
                     _  -> newQuery
-            findItem = queryDoc (fromMaybe emptyObjectCollection (document s)) newQuery
+            findItem = queryDoc (getDocument s) newQuery
             newQuery = path s <> query
 
 pwd :: MarsState -> IO ()
@@ -58,33 +59,21 @@ update s query value = return s'
         s' = s{document = newDoc}
 
 save :: MarsState -> Text.Text -> IO MarsState
-save s filename = do
-        writeFile (Text.unpack filename) (ByteString.unpack . encodePretty $ toJSON s)
-        return s
+save s filename = s <$ writeFile (Text.unpack filename) (ByteString.unpack . encodePretty $ toJSON s)
 
 load :: MarsState -> Text.Text -> IO MarsState
 load s filename = do
         c <- readFile (Text.unpack filename)
-        case decode (ByteString.pack c) of
-            Nothing -> do
-                        hPutStrLn stderr "Invalid saved state"
-                        return s
-            Just j -> case fromJSON j of
-                        Error err -> idempotent s $ hPutStrLn stderr ("Invalid saved state: " <> err)
-                        Success state -> return state
+        loadResult $ decode (ByteString.pack c)
+    where
+        loadResult Nothing = s <$ hPutStrLn stderr "Invalid saved state"
+        loadResult (Just j) = reportReult . fromJSON $ j
 
-emptyObjectCollection :: Value
-emptyObjectCollection = object []
-
-idempotent :: MarsState -> IO() -> IO MarsState
-idempotent s io = do
-                io
-                return s
+        reportReult (Error err) = s <$ hPutStrLn stderr ("Invalid saved state: " <> err)
+        reportReult (Success state) = pure state
 
 ls :: MarsState -> Query -> IO()
-ls s q = putStrLn . Text.unpack . format
-       . list (fromMaybe emptyObjectCollection (document s))
-       $ path s <> q
+ls s q = putStrLn . Text.unpack . format . list (getDocument s) $ path s <> q
     where
         format :: [[Text.Text]] -> Text.Text
         format l = Text.intercalate "\n" (Text.intercalate "\n" <$> l)
@@ -115,14 +104,13 @@ ls s q = putStrLn . Text.unpack . format
 data ANSIColour = Grey| Red | Green | Yellow | Blue | Magenta| Cyan | White
 
 ansiColourText :: ANSIColour -> Text.Text -> Text.Text
-ansiColourText color t = case color of
-                            Grey    -> wrap "30" t
-                            Red     -> wrap "31" t
-                            Green   -> wrap "32" t
-                            Yellow  -> wrap "33" t
-                            Blue    -> wrap "34" t
-                            Magenta -> wrap "35" t
-                            Cyan    -> wrap "36" t
-                            White   -> wrap "37" t
-    where
-        wrap colourID text = "\ESC[" <> colourID <> "m" <> text <> "\ESC[0m"
+ansiColourText Grey    = ansiWrap "30"
+ansiColourText Red     = ansiWrap "31"
+ansiColourText Green   = ansiWrap "32"
+ansiColourText Yellow  = ansiWrap "33"
+ansiColourText Blue    = ansiWrap "34"
+ansiColourText Magenta = ansiWrap "35"
+ansiColourText Cyan    = ansiWrap "36"
+ansiColourText White   = ansiWrap "37"
+
+ansiWrap colourID text = "\ESC[" <> colourID <> "m" <> text <> "\ESC[0m"
