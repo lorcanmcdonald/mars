@@ -46,17 +46,6 @@ renderQueryItem (IndexedItem i) = Text.pack (show i)
 renderQueryItem WildCardItem    = Text.pack "*"
 renderQueryItem LevelAbove      = Text.pack ".."
 
-getC :: QueryItem -> Value -> Value
-getC (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
-getC (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
-getC _ _                       = object []
-
-setC :: QueryItem -> Value -> Value -> Value
-setC (IndexedItem i) v (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
-setC (NamedItem n) v (Object o)  = toJSON $ insert n v o
-setC WildCardItem v (Array a)    = Array $ Vector.map (const v)  a
-setC WildCardItem v (Object a)   = Object $ Map.map (const v)  a
-setC _ _ c                       = c
 
 moveUp :: Query -> Query
 moveUp (Query q) =  Query . reverse . drop 1 $ reverse q
@@ -77,4 +66,16 @@ queryDoc v q = [v ^. (queryLens q) ]
 queryLens :: Query -> Lens Value Value
 queryLens (Query items) = foldr ((.) . toLens) id $ reverse items
     where
-        toLens i = lens (getC i) (setC i)
+        toLens i = lens (get i) (set i)
+
+        get :: QueryItem -> Value -> Value
+        get (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
+        get (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
+        get _ _                       = object []
+
+        set :: QueryItem -> Value -> Value -> Value
+        set (IndexedItem i) v (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
+        set (NamedItem n) v (Object o)  = toJSON $ insert n v o
+        set WildCardItem v (Array a)    = Array $ Vector.map (const v)  a
+        set WildCardItem v (Object a)   = Object $ Map.map (const v)  a
+        set _ _ c                       = c
