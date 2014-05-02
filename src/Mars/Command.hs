@@ -67,16 +67,16 @@ queryLens :: Query -> Lens' Value Value
 queryLens (Query items) = foldr ((.) . queryItemLens) id $ items
 
 queryItemLens :: QueryItem -> Lens' Value Value
-queryItemLens item = lens (get item) (set item)
+queryItemLens item = lens (getter item) (setter item)
     where
-        get :: QueryItem -> Value -> Value
-        get (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
-        get (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
-        get _ _                       = object []
+        getter :: QueryItem -> Value -> Value
+        getter (IndexedItem i) (Array a) = fromMaybe (object []) $ (Vector.!?) a i
+        getter (NamedItem n) (Object o)  = fromMaybe (object []) $ Map.lookup n o
+        getter _ _                       = object []
 
-        set :: QueryItem -> Value -> Value -> Value
-        set (IndexedItem i) v (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
-        set (NamedItem n) v (Object o)  = toJSON $ insert n v o
-        set WildCardItem v (Array a)    = Array $ Vector.map (const v)  a
-        set WildCardItem v (Object a)   = Object $ Map.map (const v)  a
-        set _ _ c                       = c
+        setter :: QueryItem -> Value -> Value -> Value
+        setter (IndexedItem i) v (Array a) = toJSON . Vector.update a . Vector.fromList $ [(i, v)]
+        setter (NamedItem n) v (Object o)  = toJSON $ insert n v o
+        setter WildCardItem v (Array a)    = Array $ Vector.map (const v)  a
+        setter WildCardItem v (Object a)   = Object $ Map.map (const v)  a
+        setter _ _ c                       = c
