@@ -75,11 +75,11 @@ queryDoc :: Value -> Query -> [Value]
 queryDoc v q = queryFunc q v
 
 queryFunc :: Query -> Value -> [Value]
-queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id ql ]
+queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id (reverse ql) ]
     where
         toLens i = lens (getC i) (setC i)
 
 modifyFunc :: Query -> Value -> Value -> Value
-modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id ql ^= v $ cv
+modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id (reverse ql) ^= v $ cv
     where
         toLens i = lens (getC i) (setC i)
