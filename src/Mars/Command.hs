@@ -69,17 +69,12 @@ simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
         simplify item processed   = item:processed
 
 modifyDoc :: Value -> Query -> Value -> Value
-modifyDoc cv q = modifyFunc q cv
+modifyDoc cv q v = (queryLens q) ^= v $ cv
 
 queryDoc :: Value -> Query -> [Value]
-queryDoc v q = queryFunc q v
+queryDoc v q = [v ^. (queryLens q) ]
 
-queryFunc :: Query -> Value -> [Value]
-queryFunc (Query ql) = \cv -> [cv ^. foldr ((.) . toLens) id (reverse ql) ]
-    where
-        toLens i = lens (getC i) (setC i)
-
-modifyFunc :: Query -> Value -> Value -> Value
-modifyFunc (Query ql) = \cv v -> foldr ((.) .toLens) id (reverse ql) ^= v $ cv
+queryLens :: Query -> Lens Value Value
+queryLens (Query items) = foldr ((.) . toLens) id $ reverse items
     where
         toLens i = lens (getC i) (setC i)
