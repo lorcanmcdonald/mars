@@ -16,7 +16,7 @@ instance Arbitrary Text.Text where
     arbitrary = Text.pack <$> arbString
 
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'] <> ['0' .. '9'])) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
+arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'] )) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
 
 arbDict :: Gen [(String, String)]
 arbDict = listOf stupple
@@ -27,7 +27,7 @@ stupple = (,) <$> arbString <*> arbString
 instance Arbitrary Value where
     arbitrary = oneof [ Array <$> arbitrary
                       , String <$> arbitrary
-                      , Number <$> arbitrary
+                      -- , Number <$> arbitrary
                       , Bool <$> arbitrary
                       , pure Null
                       ]

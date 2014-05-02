@@ -59,13 +59,13 @@ library
              , data-lens-template < 2.2
              , syb < 0.4
              , QuickCheck < 3.1
-             , aeson < 0.7
+             , aeson == 0.7.*
              , aeson-pretty < 0.8
              , attoparsec < 0.11
              , base >=3 && < 5
              , bytestring < 1
              , parsec < 3.2
-             , text < 0.12
+             , text == 1.*
              , transformers < 0.4
              , unordered-containers < 0.3
              , url < 2.2
@@ -81,8 +81,8 @@ executable mars
                  , optparse-applicative < 0.8
                  , attoparsec < 0.11
                  , haskeline < 0.8
-                 , text < 0.12
-                 , aeson < 0.7
+                 , text == 1.*
+                 , aeson == 0.7.*
   if os(windows)
     Cpp-options: -DWINDOWS
 
@@ -102,9 +102,9 @@ Test-suite test-mars
                   , tasty-hunit
                   , vector < 0.11
                   , tasty == 0.8.*
-                  , text < 0.12
+                  , text == 1.*
                   , Mars < 0.2
-                  , aeson < 0.7
+                  , aeson == 0.7.*
 
 source-repository head
     type: git
