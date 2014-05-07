@@ -55,12 +55,13 @@ maybeQuery = try ( Just <$> query)
         <?> "optional query"
 
 query :: forall u. ParsecT String u Identity Query
-query = (do
+query = do
         items <- queryItem `sepBy` string (Text.unpack querySeparator)
-        case items of
-            [] -> mzero
-            _  -> return $ Query items)
+        returnQuery items
         <?> "query"
+    where
+        returnQuery [] = mzero
+        returnQuery items = return $ Query items
 
 queryItem :: forall u. ParsecT String u Identity QueryItem
 queryItem =     try (LevelAbove            <$  string "..")
@@ -82,9 +83,7 @@ filename = try ( Text.pack <$> (string "\"" *> (many1 . noneOf $ "\"") <* string
 value :: forall u.  ParsecT String u Identity AesonTypes.Value
 value = (do
         v <- wspaceSeparated
-        case parseOnly AesonParser.value (ByteString.pack v) of
-            Left _ -> mzero
-            Right val -> return val)
+        either (const mzero) return ( parseOnly AesonParser.value (ByteString.pack v)))
         <?> "simple JSON Value"
 
 wspaceSeparated :: forall u. ParsecT String u Identity String

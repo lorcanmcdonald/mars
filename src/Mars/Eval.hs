@@ -1,4 +1,4 @@
-{-#LANGUAGE OverloadedStrings, DoAndIfThenElse #-}
+{-#LANGUAGE OverloadedStrings, DoAndIfThenElse, RankNTypes #-}
 module Mars.Eval
 (run, ls, cd, pwd, cat, update, save, load)
 where
@@ -8,6 +8,7 @@ import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
 import Data.Maybe
 import Data.Monoid
+import Data.String
 import Mars.Command
 import Mars.Instances ()
 import Mars.Types
@@ -26,45 +27,40 @@ run s (Update query value) = update s query value
 run s (Save filename)      = save s filename
 run s (Load filename)      = load s filename
 
-getDocument s = (fromMaybe (object []) (document s))
+getDocument :: MarsState -> Value
+getDocument s = fromMaybe (object []) $ document s
 
 cat :: MarsState -> [Query] -> IO ()
 cat s [] = putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (getDocument s) $ path s
-cat s l  = putStrLn .
-                     ByteString.unpack $ ByteString.intercalate "\n" ((=<<) formattedJSONText l)
-                where
-                    formattedJSONText :: Query -> [ByteString.ByteString]
-                    formattedJSONText q = fmap encodePretty .
-                         queryDoc (getDocument s) $ path s <> q
+cat s l  = putStrLn . ByteString.unpack . ByteString.intercalate "\n" $ (=<<) formattedJSONText l
+    where
+        formattedJSONText :: Query -> [ByteString.ByteString]
+        formattedJSONText q = fmap encodePretty .
+             queryDoc (getDocument s) $ path s <> q
 
 cd :: MarsState -> Query -> IO MarsState
-cd s (Query (LevelAbove : _)) = return s {path = moveUp (path s)}
-cd s query                    = return s {path = newQuery' }
-        where
-            newQuery' = case findItem of
-                    [] -> path s
-                    _  -> newQuery
-            findItem = queryDoc (getDocument s) newQuery
-            newQuery = path s <> query
+cd s (Query (LevelAbove : _)) = pure s { path = moveUp (path s) }
+cd s query                    = pure s { path = newQuery }
+    where
+        newQuery | itemExists = path s
+                 | otherwise  = path s <> query
+        itemExists = null . queryDoc (getDocument s) $ (path s <> query)
 
 pwd :: MarsState -> IO ()
 pwd s = putStrLn . Text.unpack . renderQuery . simplifyQuery $ path s
 
 update :: MarsState -> Query -> Value -> IO MarsState
-update s query value = return s'
+update s query value = return $ s { document = newDoc }
     where
-        newDoc = case document s of
-                    Nothing -> Nothing
-                    Just doc -> Just $ modifyDoc doc query value
-        s' = s{document = newDoc}
+        newDoc = maybe Nothing (\ doc -> Just $ modifyDoc doc query value) (document s)
 
 save :: MarsState -> Text.Text -> IO MarsState
 save s filename = s <$ writeFile (Text.unpack filename) (ByteString.unpack . encodePretty $ toJSON s)
 
 load :: MarsState -> Text.Text -> IO MarsState
 load s filename = do
-        c <- readFile (Text.unpack filename)
-        loadResult $ decode (ByteString.pack c)
+        c <- readFile . Text.unpack $ filename
+        (loadResult . decode . ByteString.pack) c
     where
         loadResult Nothing = s <$ hPutStrLn stderr "Invalid saved state"
         loadResult (Just j) = reportReult . fromJSON $ j
@@ -82,10 +78,9 @@ ls s q = putStrLn . Text.unpack . format . list (getDocument s) $ path s <> q
         list doc query = asString <$> elements
                     where
                         asString :: Value -> [Text.Text]
-                        asString e = case e of
-                                Object o -> zipWith ansiColourText [colourMap $ getChild o k | k <- Map.keys o] $ Map.keys o
-                                Array a  -> [ Text.pack $ "Array[" <> (show.Vector.length) a <> "]"]
-                                _        -> []
+                        asString (Object o) = zipWith ansiColourText [colourMap $ getChild o k | k <- Map.keys o] $ Map.keys o
+                        asString (Array a)  = [ Text.pack $ "Array[" <> (show.Vector.length) a <> "]"]
+                        asString _          = []
 
                         elements :: [Value]
                         elements = queryDoc doc query
@@ -113,4 +108,5 @@ ansiColourText Magenta = ansiWrap "35"
 ansiColourText Cyan    = ansiWrap "36"
 ansiColourText White   = ansiWrap "37"
 
+ansiWrap :: forall m. (Monoid m, Data.String.IsString m) => m -> m -> m
 ansiWrap colourID text = "\ESC[" <> colourID <> "m" <> text <> "\ESC[0m"
