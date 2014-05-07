@@ -53,8 +53,8 @@ testNestedObject = queryDoc value query @?= [ "b"]
 
 prop_command_parse :: Command -> Bool
 prop_command_parse c = case parser . renderCommand $ c of
-                Left _      -> trace (show . renderCommand $ c) False
-                Right []    -> trace (show . renderCommand $ c) False
+                Left _      -> False
+                Right []    -> False
                 Right (x:_) -> x == c
 
 prop_query_parse :: Query -> Bool
