@@ -1,4 +1,4 @@
-{-#LANGUAGE OverloadedStrings#-}
+{-# LANGUAGE OverloadedStrings #-}
 import Data.Aeson
 import qualified Data.Vector  as Vector
 import qualified Data.HashMap.Strict as HashMap
@@ -6,12 +6,12 @@ import Debug.Trace
 import Mars.Command
 import Mars.Types
 import Mars.Parser
-import Tests.Mars.Arbitraries()
+import Tests.Mars.Arbitraries ()
 import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 import Test.Tasty.HUnit
 
-main :: IO()
+main :: IO ()
 main = defaultMain tests
 
 
@@ -53,9 +53,9 @@ testNestedObject = queryDoc value query @?= [ "b"]
 
 prop_command_parse :: Command -> Bool
 prop_command_parse c = case parser . renderCommand $ c of
-                Left _      -> False
-                Right []    -> False
-                Right (x:_) -> x == c
+                Left _        -> False
+                Right []      -> False
+                Right (x : _) -> x == c
 
 prop_query_parse :: Query -> Bool
 prop_query_parse q = case parseQuery (renderQuery q) of
@@ -63,7 +63,6 @@ prop_query_parse q = case parseQuery (renderQuery q) of
                 Right qry  -> qry == q
 
 prop_move_up_shorten :: Query -> Bool
-prop_move_up_shorten q = len(moveUp q) <= len q
+prop_move_up_shorten q = len (moveUp q) <= len q
     where
         len (Query l) = length l
-

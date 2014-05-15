@@ -1,4 +1,4 @@
-{-#LANGUAGE OverloadedStrings, DoAndIfThenElse, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, DoAndIfThenElse, RankNTypes #-}
 module Mars.Eval
 (run, ls, cd, pwd, cat, update, save, load)
 where
@@ -31,7 +31,7 @@ getDocument :: MarsState -> Value
 getDocument s = fromMaybe (object []) $ document s
 
 cat :: MarsState -> [Query] -> IO ()
-cat s [] = putStrLn . (=<<) (ByteString.unpack.encodePretty) . queryDoc (getDocument s) $ path s
+cat s [] = putStrLn . (=<<) (ByteString.unpack . encodePretty) . queryDoc (getDocument s) $ path s
 cat s l  = putStrLn . ByteString.unpack . ByteString.intercalate "\n" $ (=<<) formattedJSONText l
     where
         formattedJSONText :: Query -> [ByteString.ByteString]
@@ -55,7 +55,10 @@ update s query value = return $ s { document = newDoc }
         newDoc = maybe Nothing (\ doc -> Just $ modifyDoc doc query value) (document s)
 
 save :: MarsState -> Text.Text -> IO MarsState
-save s filename = s <$ writeFile (Text.unpack filename) (ByteString.unpack . encodePretty $ toJSON s)
+save s filename = s <$ writeFile filename json
+    where
+        filename = Text.unpack filename
+        json = ByteString.unpack . encodePretty $ toJSON s
 
 load :: MarsState -> Text.Text -> IO MarsState
 load s filename = do
@@ -68,7 +71,7 @@ load s filename = do
         reportReult (Error err) = s <$ hPutStrLn stderr ("Invalid saved state: " <> err)
         reportReult (Success state) = pure state
 
-ls :: MarsState -> Query -> IO()
+ls :: MarsState -> Query -> IO ()
 ls s q = putStrLn . Text.unpack . format . list (getDocument s) $ path s <> q
     where
         format :: [[Text.Text]] -> Text.Text
@@ -76,27 +79,30 @@ ls s q = putStrLn . Text.unpack . format . list (getDocument s) $ path s <> q
 
         list :: Value -> Query -> [[Text.Text]]
         list doc query = asString <$> elements
+            where
+                asString :: Value -> [Text.Text]
+                asString (Object o) = zipWith ansiColourText colorChildren $ Map.keys o
                     where
-                        asString :: Value -> [Text.Text]
-                        asString (Object o) = zipWith ansiColourText [colourMap $ getChild o k | k <- Map.keys o] $ Map.keys o
-                        asString (Array a)  = [ Text.pack $ "Array[" <> (show.Vector.length) a <> "]"]
-                        asString _          = []
+                        colorChildren = [ colourMap $ getChild o k | k <- Map.keys o ]
 
-                        elements :: [Value]
-                        elements = queryDoc doc query
+                asString (Array a)  = [ Text.pack $ "Array[" <> (show . Vector.length) a <> "]"]
+                asString _          = []
 
-                        getChild :: Map.HashMap Text.Text Value -> Text.Text -> Value
-                        getChild obj key = fromMaybe emptyObject $ Map.lookup key obj
+                elements :: [Value]
+                elements = queryDoc doc query
 
-                        colourMap :: Value -> ANSIColour
-                        colourMap (Object _) = Blue
-                        colourMap (Array _)  = Blue
-                        colourMap (String _) = Green
-                        colourMap (Number _) = Green
-                        colourMap (Bool _)   = Green
-                        colourMap (Null)     = Green
+                getChild :: Map.HashMap Text.Text Value -> Text.Text -> Value
+                getChild obj key = fromMaybe emptyObject $ Map.lookup key obj
 
-data ANSIColour = Grey| Red | Green | Yellow | Blue | Magenta| Cyan | White
+                colourMap :: Value -> ANSIColour
+                colourMap (Object _) = Blue
+                colourMap (Array _)  = Blue
+                colourMap (String _) = Green
+                colourMap (Number _) = Green
+                colourMap (Bool _)   = Green
+                colourMap (Null)     = Green
+
+data ANSIColour = Grey | Red | Green | Yellow | Blue | Magenta | Cyan | White
 
 ansiColourText :: ANSIColour -> Text.Text -> Text.Text
 ansiColourText Grey    = ansiWrap "30"
@@ -108,5 +114,5 @@ ansiColourText Magenta = ansiWrap "35"
 ansiColourText Cyan    = ansiWrap "36"
 ansiColourText White   = ansiWrap "37"
 
-ansiWrap :: forall m. (Monoid m, Data.String.IsString m) => m -> m -> m
+ansiWrap :: forall m . (Monoid m, Data.String.IsString m) => m -> m -> m
 ansiWrap colourID text = "\ESC[" <> colourID <> "m" <> text <> "\ESC[0m"

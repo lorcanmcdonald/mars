@@ -1,4 +1,4 @@
-{-#LANGUAGE OverloadedStrings, CPP #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Main
 where
 import Control.Applicative
@@ -18,14 +18,14 @@ import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.Text as Text
 
 #ifdef WINDOWS
-readline :: String -> IO(Maybe String)
+readline :: String -> IO (Maybe String)
 readline prompt = do
                 SIO.putStr prompt
                 hFlush stdout
                 line <- SIO.getLine
                 return $ Just line
 
-addHistory :: String -> IO()
+addHistory :: String -> IO ()
 addHistory _ = return ()
 
 testTTY :: IO Bool
@@ -44,7 +44,7 @@ initialState = MarsState { path        = Query []
                          , document    = Nothing
                          }
 
-main :: IO()
+main :: IO ()
 main = execParser opts >>= runWithOptions
     where
         opts = info optParser mempty
@@ -85,9 +85,8 @@ exec = foldM eval
 
 readEvalPrintLoop :: MarsState -> IO ()
 readEvalPrintLoop state = bracketOnError (initializeInput defaultSettings)
-            cancelInput -- This will only be called if an exception such
-                            -- as a SigINT is received.
-            (\hd -> loop hd state >> closeInput hd)
+            cancelInput -- This will only be called if an exception such as a SigINT is received.
+            (\ hd -> loop hd state >> closeInput hd)
     where
         loop :: InputState -> MarsState -> IO ()
         loop hd state = do
@@ -105,4 +104,4 @@ eval s input = case parser input of
                         print err
                         return s
             Right [] -> return s
-            Right (x:_) -> run s x
+            Right (x : _) -> run s x

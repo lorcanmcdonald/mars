@@ -1,5 +1,5 @@
+{-# LANGUAGE OverloadedStrings, Rank2Types #-}
 -- |Types representing items entered at the Mars command line
-{-#LANGUAGE OverloadedStrings, Rank2Types #-}
 module Mars.Command
 (renderCommand
 , renderQuery
@@ -24,16 +24,21 @@ import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 
--- |Output a command in a format similar to how it would have be entered by the user
+{- |Output a command in a format similar to how it would have be entered by the
+user -}
 renderCommand :: Command -> Text.Text
-renderCommand (Cat [])           = "cat"
-renderCommand (Cat l)            = "cat "    <> Text.intercalate " " (renderQuery <$> l)
-renderCommand (Ls a)             = "ls "     <> renderQuery a
-renderCommand (Save f)           = "save "   <> f
-renderCommand (Load f)           = "load \"" <> f <> "\""
-renderCommand (Update q val)     = "update " <> renderQuery q <> " "  <> Text.pack ( ByteString.unpack $ encode val)
-renderCommand Pwd                = "pwd"
-renderCommand (Cd a)             = "cd "     <> renderQuery a
+renderCommand (Cat [])       = "cat"
+renderCommand (Cat l)        = "cat "
+                             <> Text.intercalate " " (renderQuery <$> l)
+renderCommand (Ls a)         = "ls "     <> renderQuery a
+renderCommand (Save f)       = "save "   <> f
+renderCommand (Load f)       = "load \"" <> f <> "\""
+renderCommand (Update q val) = "update "
+                             <> renderQuery q
+                             <> " "
+                             <> Text.pack ( ByteString.unpack $ encode val)
+renderCommand Pwd            = "pwd"
+renderCommand (Cd a)         = "cd "     <> renderQuery a
 
 -- |Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
@@ -46,7 +51,6 @@ renderQueryItem (IndexedItem i) = Text.pack (show i)
 renderQueryItem WildCardItem    = Text.pack "*"
 renderQueryItem LevelAbove      = Text.pack ".."
 
-
 moveUp :: Query -> Query
 moveUp (Query q) =  Query . reverse . drop 1 $ reverse q
 
@@ -55,7 +59,7 @@ simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
     where
         simplify :: QueryItem -> [QueryItem] -> [QueryItem]
         simplify (LevelAbove) processed    = drop 1 processed
-        simplify item processed   = item:processed
+        simplify item processed   = item : processed
 
 modifyDoc :: Value -> Query -> Value -> Value
 modifyDoc v q = set (queryLens q) v

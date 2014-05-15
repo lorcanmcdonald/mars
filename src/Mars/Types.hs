@@ -1,4 +1,4 @@
-{-#LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module Mars.Types where
 
 import Data.Monoid
@@ -21,8 +21,8 @@ data QueryItem = NamedItem (Text.Text)
                | LevelAbove
     deriving (Show, Eq)
 
--- |A data type representing the primitive commands available in the Mars
--- repl
+{- |A data type representing the primitive commands available in the Mars
+repl -}
 data Command  = Cat [Query]
               | Ls Query
               | Save Text.Text

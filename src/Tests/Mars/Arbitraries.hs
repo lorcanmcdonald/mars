@@ -1,4 +1,4 @@
-{-#LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.Mars.Arbitraries where
 
@@ -15,8 +15,9 @@ import qualified Data.Vector as Vector
 instance Arbitrary Text.Text where
     arbitrary = Text.pack <$> arbString
 
+-- TODO we are explicitly not testing empty strings here, we really should
 arbString :: Gen String
-arbString = listOf ( elements (['A'..'Z'] <> ['a' .. 'z'] )) `suchThat` (not. null) -- TODO we are explicitly not testing empty strings here, we really should
+arbString = listOf ( elements (['A' .. 'Z'] <> ['a' .. 'z'] )) `suchThat` (not . null)
 
 arbDict :: Gen [(String, String)]
 arbDict = listOf stupple
@@ -54,8 +55,9 @@ instance Arbitrary Command where
                       , pure Pwd
                       ]
 
+-- TODO we are explicitly not testing empty strings here, we really should
 instance Arbitrary Query where
-    arbitrary = suchThat (Query <$> arbitrary) (\ (Query l) -> not $ null l) -- TODO we are explicitly not testing empty strings here, we really should
+    arbitrary = suchThat (Query <$> arbitrary) (\ (Query l) -> not $ null l)
 
 instance Arbitrary QueryItem where
     arbitrary = oneof  [ NamedItem <$> arbitrary
