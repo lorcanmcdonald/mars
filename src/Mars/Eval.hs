@@ -55,10 +55,9 @@ update s query value = return $ s { document = newDoc }
         newDoc = maybe Nothing (\ doc -> Just $ modifyDoc doc query value) (document s)
 
 save :: MarsState -> Text.Text -> IO MarsState
-save s filename = s <$ writeFile filename json
+save s filename = s <$ writeFile (Text.unpack filename) jsonString
     where
-        filename = Text.unpack filename
-        json = ByteString.unpack . encodePretty $ toJSON s
+        jsonString = ByteString.unpack . encodePretty $ toJSON s
 
 load :: MarsState -> Text.Text -> IO MarsState
 load s filename = do

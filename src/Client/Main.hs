@@ -84,19 +84,19 @@ exec :: MarsState -> [Text.Text] -> IO MarsState
 exec = foldM eval
 
 readEvalPrintLoop :: MarsState -> IO ()
-readEvalPrintLoop state = bracketOnError (initializeInput defaultSettings)
+readEvalPrintLoop s = bracketOnError (initializeInput defaultSettings)
             cancelInput -- This will only be called if an exception such as a SigINT is received.
-            (\ hd -> loop hd state >> closeInput hd)
+            (\ hd -> loop hd s >> closeInput hd)
     where
         loop :: InputState -> MarsState -> IO ()
-        loop hd state = do
+        loop hd s = do
             minput <- queryInput hd (getInputLine "> ")
             case minput of
                 Nothing -> return ()
                 Just "quit" -> return ()
                 Just input -> do
-                                state' <- eval state $ Text.pack input
-                                loop hd state'
+                                s' <- eval s $ Text.pack input
+                                loop hd s'
 
 eval :: MarsState -> Text.Text -> IO MarsState
 eval s input = case parser input of
