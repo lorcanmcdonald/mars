@@ -54,11 +54,8 @@ library
       Mars.Eval
       Mars.Types
       Mars.Instances
-      Tests.Mars.Arbitraries
   build-depends: lens
              , data-lens-template < 2.2
-             , syb < 0.4
-             , QuickCheck < 3.1
              , aeson == 0.7.*
              , aeson-pretty < 0.8
              , attoparsec < 0.11
@@ -95,16 +92,16 @@ Test-suite test-mars
 
     ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded
     Build-depends: QuickCheck
-                  , attoparsec < 0.11
-                  , base >=3 && < 5
+                  , attoparsec
+                  , base
                   , tasty-quickcheck
-                  , unordered-containers < 0.3
+                  , unordered-containers
                   , tasty-hunit
-                  , vector < 0.11
-                  , tasty == 0.8.*
-                  , text == 1.*
-                  , Mars < 0.2
-                  , aeson == 0.7.*
+                  , vector
+                  , tasty >= 0.10.1
+                  , text
+                  , Mars == 0.1.0.0
+                  , aeson
 
 source-repository head
     type: git
