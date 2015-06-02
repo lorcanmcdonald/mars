@@ -1,7 +1,7 @@
 # Mars
 
 Mars allows you to explore a JSON data structure using commands similar to the
-ones used for navigating UNIX file systems
+ones used for navigating UNIX file systems.
 
 ## Usage
 
