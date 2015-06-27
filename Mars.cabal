@@ -54,7 +54,9 @@ library
       Mars.Eval
       Mars.Types
       Mars.Instances
-  build-depends: lens
+      Tests.Mars.Arbitraries
+  build-depends: QuickCheck
+             , lens
              , aeson
              , aeson-pretty
              , attoparsec
