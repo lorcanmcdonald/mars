@@ -55,31 +55,30 @@ library
       Mars.Types
       Mars.Instances
   build-depends: lens
-             , data-lens-template < 2.2
-             , aeson == 0.7.*
-             , aeson-pretty < 0.8
-             , attoparsec < 0.11
-             , base >=3 && < 5
-             , bytestring < 1
-             , parsec < 3.2
+             , aeson
+             , aeson-pretty
+             , attoparsec
+             , base >=3 && < 6
+             , bytestring
+             , parsec
              , text == 1.*
-             , transformers < 0.4
-             , unordered-containers < 0.3
-             , url < 2.2
-             , vector < 1
+             , transformers
+             , unordered-containers
+             , url
+             , vector
   ghc-options: -rtsopts=all -with-rtsopts=-N -Wall
 
 executable mars
   Hs-Source-Dirs: src/Client
   main-is: Main.hs
   build-depends: Mars
-                 , base >=3 && < 5
-                 , bytestring < 1
-                 , optparse-applicative < 0.8
-                 , attoparsec < 0.11
-                 , haskeline < 0.8
-                 , text == 1.*
-                 , aeson == 0.7.*
+                 , base >=3 && < 6
+                 , bytestring
+                 , optparse-applicative
+                 , attoparsec
+                 , haskeline
+                 , text
+                 , aeson
   if os(windows)
     Cpp-options: -DWINDOWS
 
