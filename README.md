@@ -1,4 +1,4 @@
-# Mars
+# Mars [![Build Status](https://travis-ci.org/lorcanmcdonald/mars.svg?branch=master)](https://travis-ci.org/lorcanmcdonald/mars)
 
 Mars allows you to explore a JSON data structure using commands similar to the
 ones used for navigating UNIX file systems.
