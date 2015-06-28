@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings, RankNTypes #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Mars.Parser where
 import Control.Applicative
 import Control.Monad
-import Data.Attoparsec (parseOnly)
+import Data.Attoparsec.ByteString (parseOnly)
 import Mars.Types
 import Data.Functor.Identity
 import Text.ParserCombinators.Parsec hiding ((<|>))
@@ -75,8 +76,13 @@ filename = try ( Text.pack <$> (string "\"" *> noDoubleQuotes <* string "\""))
             <|> try ( Text.pack <$> wspaceSeparated) -- Doesn't handle files with spaces ...
             <?> "filename"
 
+noSpaces :: forall u. ParsecT String u Identity [Char]
 noSpaces = many1 . noneOf $ " "
+
+noEquals :: forall u. ParsecT String u Identity [Char]
 noEquals = many1 . noneOf $ "="
+
+noDoubleQuotes :: forall u. ParsecT String u Identity [Char]
 noDoubleQuotes = many1 . noneOf $ "\""
 
 value :: forall u .  ParsecT String u Identity AesonTypes.Value

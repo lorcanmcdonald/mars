@@ -68,7 +68,7 @@ library
              , unordered-containers
              , url
              , vector
-  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall
+  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -Werror
 
 executable mars
   Hs-Source-Dirs: src/Client

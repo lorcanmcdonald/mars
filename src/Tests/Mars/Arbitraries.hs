@@ -3,9 +3,7 @@
 module Tests.Mars.Arbitraries where
 
 import Data.Aeson
-import Control.Applicative
 import Data.Monoid
-import Data.Attoparsec.Number
 import Mars.Types
 import Test.QuickCheck
 import qualified Data.HashMap.Lazy as Map
@@ -36,11 +34,6 @@ instance Arbitrary Value where
 -- Only creates list of length four to prevent runaway data structures
 instance Arbitrary Array where
     arbitrary = Vector.fromListN 4 <$> listOf arbitrary
-
-instance Arbitrary Number where
-    arbitrary = oneof [ I <$> arbitrary
-                      , D <$> arbitrary
-                      ]
 
 arbPort :: Gen (Maybe Integer)
 arbPort = oneof [ pure Nothing ]

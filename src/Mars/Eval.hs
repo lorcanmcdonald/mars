@@ -2,7 +2,6 @@
 module Mars.Eval
 (run, ls, cd, pwd, cat, update, save, load)
 where
-import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
