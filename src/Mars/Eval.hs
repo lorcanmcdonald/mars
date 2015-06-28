@@ -2,6 +2,7 @@
 module Mars.Eval
 (run, ls, cd, pwd, cat, update, save, load)
 where
+import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
@@ -18,20 +19,20 @@ import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 
 run :: MarsState -> Command -> IO MarsState
-run s (Cat queries)        = s <$ cat s queries
-run s Pwd                  = s <$ pwd s
-run s (Ls query)           = s <$ ls s query
-run s (Cd query)           = cd s query
+run s (Cat queries) = s <$ cat s queries
+run s Pwd = s <$ pwd s
+run s (Ls query) = s <$ ls s query
+run s (Cd query) = cd s query
 run s (Update query value) = update s query value
-run s (Save filename)      = save s filename
-run s (Load filename)      = load s filename
+run s (Save filename) = save s filename
+run s (Load filename) = load s filename
 
 getDocument :: MarsState -> Value
 getDocument s = fromMaybe (object []) $ document s
 
 cat :: MarsState -> [Query] -> IO ()
 cat s [] = putStrLn . (=<<) (ByteString.unpack . encodePretty) . queryDoc (getDocument s) $ path s
-cat s l  = putStrLn . ByteString.unpack . ByteString.intercalate "\n" $ (=<<) formattedJSONText l
+cat s l = putStrLn . ByteString.unpack . ByteString.intercalate "\n" $ (=<<) formattedJSONText l
     where
         formattedJSONText :: Query -> [ByteString.ByteString]
         formattedJSONText q = fmap encodePretty .
