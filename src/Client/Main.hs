@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, CPP #-}
 module Main
 where
-import Control.Applicative
+import Control.Applicative ()
 import Control.Monad
 import Data.Monoid
 import Data.Aeson
@@ -84,9 +84,9 @@ exec :: MarsState -> [Text.Text] -> IO MarsState
 exec = foldM eval
 
 readEvalPrintLoop :: MarsState -> IO ()
-readEvalPrintLoop s = bracketOnError (initializeInput defaultSettings)
+readEvalPrintLoop state = bracketOnError (initializeInput defaultSettings)
             cancelInput -- This will only be called if an exception such as a SigINT is received.
-            (\ hd -> loop hd s >> closeInput hd)
+            (\ hd -> loop hd state >> closeInput hd)
     where
         loop :: InputState -> MarsState -> IO ()
         loop hd s = do

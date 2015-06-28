@@ -84,14 +84,14 @@ executable mars
   if os(windows)
     Cpp-options: -DWINDOWS
 
-  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded
+  ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded -Werror
 
 Test-suite test-mars
     Hs-Source-Dirs: src/Tests/Mars
     type: exitcode-stdio-1.0
     Main-is: Main.hs
 
-    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded
+    ghc-options: -rtsopts=all -with-rtsopts=-N -Wall -threaded -Werror
     Build-depends: QuickCheck
                   , attoparsec
                   , base

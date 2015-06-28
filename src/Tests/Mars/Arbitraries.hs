@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.Mars.Arbitraries where
 
+import Control.Applicative ()
 import Data.Aeson
 import Data.Monoid
 import Mars.Types
