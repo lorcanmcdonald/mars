@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, CPP #-}
 module Main
 where
-import Control.Applicative ()
+import Control.Applicative
 import Control.Monad
 import Data.Monoid
 import Data.Aeson
