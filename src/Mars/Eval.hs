@@ -87,7 +87,7 @@ ls s q = putStrLn . Text.unpack . format . list (getDocument s) $ path s <> q
         list doc query = asString <$> elements
             where
                 asString :: Value -> [Text.Text]
-                asString (Object o) = zipWith ansiColour colorChildren $ keys
+                asString (Object o) = zipWith ansiColour colorChildren keys
                     where
                         keys = Map.keys o
                         colorChildren = [ colourMap $ getChild o k | k <- keys ]

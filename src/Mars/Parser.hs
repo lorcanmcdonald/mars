@@ -80,13 +80,13 @@ filename = try ( Text.pack <$> (string "\"" *> noDoubleQuotes <* string "\""))
             <|> try ( Text.pack <$> wspaceSeparated)
             <?> "filename"
 
-noSpaces :: forall u . ParsecT String u Identity [Char]
+noSpaces :: forall u . ParsecT String u Identity String
 noSpaces = many1 . noneOf $ " "
 
-noEquals :: forall u . ParsecT String u Identity [Char]
+noEquals :: forall u . ParsecT String u Identity String
 noEquals = many1 . noneOf $ "="
 
-noDoubleQuotes :: forall u . ParsecT String u Identity [Char]
+noDoubleQuotes :: forall u . ParsecT String u Identity String
 noDoubleQuotes = many1 . noneOf $ "\""
 
 value :: forall u . ParsecT String u Identity AesonTypes.Value
