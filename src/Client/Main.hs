@@ -40,8 +40,8 @@ data Mars = Mars { jsonFilename :: String, noninteractive :: Bool }
 
 -- | The initial state
 initialState :: MarsState
-initialState = MarsState { path        = Query []
-                         , document    = Nothing
+initialState = MarsState { path = Query []
+                         , document = Nothing
                          }
 
 main :: IO ()
@@ -85,7 +85,10 @@ exec = foldM eval
 
 readEvalPrintLoop :: MarsState -> IO ()
 readEvalPrintLoop state = bracketOnError (initializeInput defaultSettings)
-            cancelInput -- This will only be called if an exception such as a SigINT is received.
+            {- This will only be called if an exception such as a SigINT
+             - is received.
+             -}
+            cancelInput
             (\ hd -> loop hd state >> closeInput hd)
     where
         loop :: InputState -> MarsState -> IO ()

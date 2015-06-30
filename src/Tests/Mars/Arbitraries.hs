@@ -19,7 +19,9 @@ instance Arbitrary Text.Text where
 
 -- TODO we are explicitly not testing empty strings here, we really should
 arbString :: Gen String
-arbString = listOf ( elements (['A' .. 'Z'] <> ['a' .. 'z'] )) `suchThat` (not . null)
+arbString = listOf
+            ( elements (['A' .. 'Z'] <> ['a' .. 'z'] ))
+            `suchThat` (not . null)
 
 arbDict :: Gen [(String, String)]
 arbDict = listOf stupple
@@ -57,11 +59,11 @@ instance Arbitrary Query where
     arbitrary = suchThat (Query <$> arbitrary) (\ (Query l) -> not $ null l)
 
 instance Arbitrary QueryItem where
-    arbitrary = oneof  [ NamedItem <$> arbitrary
-                       , IndexedItem <$> arbitraryPositiveInt
-                       , pure WildCardItem
-                       , pure LevelAbove
-                       ]
+    arbitrary = oneof [ NamedItem <$> arbitrary
+                      , IndexedItem <$> arbitraryPositiveInt
+                      , pure WildCardItem
+                      , pure LevelAbove
+                      ]
 
 arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (> 0)
