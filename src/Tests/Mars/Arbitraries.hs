@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.Mars.Arbitraries where
 
-#if __GLASGOW_HASKELL__ >= 707 && __GLASGOW_HASKELL__ < 710
+#if __GLASGOW_HASKELL__ >= 704 && __GLASGOW_HASKELL__ < 710
 import Control.Applicative
 #endif
 
