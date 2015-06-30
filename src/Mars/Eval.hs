@@ -1,8 +1,11 @@
-{-# LANGUAGE OverloadedStrings, DoAndIfThenElse, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, DoAndIfThenElse, RankNTypes, CPP #-}
 module Mars.Eval
 (run, ls, cd, pwd, cat, update, save, load)
 where
+#if __GLASGOW_HASKELL__ >= 707 && __GLASGOW_HASKELL__ < 710
 import Control.Applicative
+#endif
+
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types

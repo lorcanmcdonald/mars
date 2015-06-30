@@ -1,8 +1,11 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.Mars.Arbitraries where
 
+#if __GLASGOW_HASKELL__ >= 707 && __GLASGOW_HASKELL__ < 710
 import Control.Applicative
+#endif
+
 import Data.Aeson
 import Data.Monoid
 import Mars.Types
