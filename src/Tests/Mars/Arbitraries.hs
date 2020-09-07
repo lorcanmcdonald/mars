@@ -7,7 +7,6 @@ import Control.Applicative
 #endif
 
 import Data.Aeson
-import Data.Monoid
 import Mars.Types
 import Test.QuickCheck
 import qualified Data.HashMap.Lazy as Map
