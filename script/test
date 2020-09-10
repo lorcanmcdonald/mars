@@ -1,0 +1,31 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+GHC_VERSION=8.8.3
+
+"$dir/script/update"
+cd "$dir"
+
+run_haskell() {
+  set +u
+  # shellcheck disable=SC2086
+  docker run \
+      --rm \
+      -ti \
+      -e LC_ALL=C.UTF-8 \
+      -v "$dir/:/opt/build" \
+      -v "$dir/obj/cabal-sandbox:/opt/build/.cabal-sandbox" \
+      -v "$dir/obj/dist-newstyle:/opt/build/dist-newstyle" \
+      -v "$dir/obj/cabal-store:/root/.cabal/store" \
+      -v "$dir/obj/cabal-packages:/root/.cabal/packages" \
+      -w /opt/build \
+      haskell:$GHC_VERSION \
+        $1 $2 $3 $4 $5 $6 $7 $8 $9 
+
+  set -u
+}
+
+
+run_haskell sh -c "cabal update && cabal test"

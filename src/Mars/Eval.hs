@@ -10,7 +10,6 @@ import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.Types
 import Data.Maybe
-import Data.Monoid
 import Data.String
 import Mars.Command
 import Mars.Instances ()
