@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+export TASTY_HIDE_SUCCESSES=True
+export TASTY_QUICKCHECK_TESTS=20
+
+ghcid \
+  --lint \
+  --command="cabal v2-repl test-mars" \
+  --test="main"
