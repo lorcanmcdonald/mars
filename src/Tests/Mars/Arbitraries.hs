@@ -62,12 +62,9 @@ instance Arbitrary Command where
         Cd <$> arbitrary,
         pure Pwd
       ]
-  shrink = genericShrink
 
--- TODO we are explicitly not testing empty strings here, we really should
 instance Arbitrary Query where
-  arbitrary = Query <$> arbitrary
-  shrink = genericShrink
+  arbitrary = Query . NonEmpty.fromList . Modifiers.getNonEmpty <$> arbitrary
 
 genGlob :: Gen (NonEmpty GlobItem)
 genGlob = do
@@ -79,29 +76,34 @@ genGlob = do
 instance Arbitrary QueryItem where
   arbitrary =
     oneof
-      [ Glob <$> genGlob,
-        pure LevelAbove
+      [ Glob <$> genGlob
       ]
-  shrink (Glob l) =
-    if (NonEmpty.fromList [NonEmpty.head l] == l)
-      then []
-      else [Glob . NonEmpty.fromList $ [NonEmpty.head l]]
-  shrink _ = []
 
 instance Arbitrary GlobItem where
   arbitrary =
     oneof [pure AnyChar, pure AnyCharMultiple]
-  shrink = genericShrink
 
 arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (> 0)
 
 instance Arbitrary MarsState where
   arbitrary = MarsState <$> arbitrary <*> arbitrary
-  shrink = genericShrink
 
 arbitraryArray :: Gen Array
 arbitraryArray = Vector.fromList <$> arbitrary
 
 arbitraryObject :: Gen Object
 arbitraryObject = Map.fromList <$> arbitrary
+
+instance Arbitrary ANSIColour where
+  arbitrary =
+    oneof
+      [ pure Grey,
+        pure Red,
+        pure Green,
+        pure Yellow,
+        pure Blue,
+        pure Magenta,
+        pure Cyan,
+        pure White
+      ]

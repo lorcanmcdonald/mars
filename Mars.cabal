@@ -74,11 +74,15 @@ Test-suite test-mars
     Main-is: Main.hs
     other-modules:
       Mars.Command
+      Mars.Eval
+      Mars.Instances
       Mars.Parser
       Mars.Types
       Tests.Mars.Arbitraries
     autogen-modules:
       Mars.Command
+      Mars.Eval
+      Mars.Instances
       Mars.Parser
       Mars.Types
       Tests.Mars.Arbitraries
@@ -87,6 +91,7 @@ Test-suite test-mars
     Build-depends: QuickCheck
                   , Mars
                   , aeson
+                  , aeson-pretty
                   , attoparsec
                   , base
                   , bytestring
@@ -98,6 +103,7 @@ Test-suite test-mars
                   , tasty-quickcheck
                   , text
                   , unordered-containers
+                  , url
                   , vector
 
 source-repository head

@@ -4,12 +4,14 @@ import Data.Aeson
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.String.Conv
+import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import Mars.Command
+import Mars.Eval
 import Mars.Parser
 import Mars.Types
 import Test.Tasty
-import Data.Text (Text)
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck as QC
 import Tests.Mars.Arbitraries ()
@@ -22,7 +24,8 @@ tests =
   testGroup
     "Martian Tests"
     [ unitTests,
-      queryProperties
+      queryProperties,
+      evaluationTests
     ]
 
 queryProperties :: TestTree
@@ -37,25 +40,49 @@ queryProperties =
 parseCase :: String -> [Command] -> TestTree
 parseCase s q = testCase s $ parser (toS s) @?= Right q
 
+evaluationTests :: TestTree
+evaluationTests =
+  testGroup
+    "Evaluation"
+    [ testProperty
+        "colored text contains text"
+        (\color text -> (length . Text.breakOnAll text . ansiColour color $ text) /= 0)
+    ]
+
 unitTests :: TestTree
 unitTests =
   testGroup
     "Unit Tests"
     [ testGroup
         "Parsing Commands"
-        [ parseCase "ls" [Ls (Query [])],
+        [ parseCase "ls" [Ls DefaultLocation],
           testCase "ls *" $
             parser "ls *"
               @?= Right
-                [Ls (Query [Glob . NonEmpty.fromList $ [AnyCharMultiple]])],
+                [ Ls
+                    ( Query . NonEmpty.fromList $
+                        [ Glob . NonEmpty.fromList $
+                            [AnyCharMultiple]
+                        ]
+                    )
+                ],
           testCase
             "ls b*"
-            $ parser "ls b*" @?= Right [Ls (Query [Glob . NonEmpty.fromList $ [LiteralString "b", AnyCharMultiple]])]
+            $ parser "ls b*"
+              @?= Right
+                [ Ls
+                    ( Query
+                        . NonEmpty.fromList
+                        $ [ Glob . NonEmpty.fromList $
+                              [LiteralString "b", AnyCharMultiple]
+                          ]
+                    )
+                ]
         ],
       testGroup
         "Parsing Queries"
         [ testCase "empty query" $
-            parseQuery "" @?= Right (Query [])
+            parseQuery "" @?= Right DefaultLocation
         ],
       testGroup
         "Glob Patterns"
@@ -73,54 +100,54 @@ unitTests =
         "General"
         [ testCase "Can query long array" $
             queryDoc
+              (Query . NonEmpty.fromList $ [Glob (NonEmpty.fromList [LiteralString "3"])])
               (Array . Vector.fromList $ ["1", "2", "3", "4"])
-              (Query [Glob (NonEmpty.fromList [LiteralString "3"])])
               @?= ["4"],
           testCase "Can query array" $
             queryDoc
+              (Query . NonEmpty.fromList $ [Glob (NonEmpty.fromList [LiteralString "0"])])
               (Array . Vector.singleton $ "1")
-              (Query [Glob (NonEmpty.fromList [LiteralString "0"])])
               @?= ["1"],
           testCase "Can query nested arrays" testNestedArray,
           testCase "Can query nested objects" testNestedObject,
           testCase "Modify document" $
             modifyDoc
               (Array (Vector.fromList [Number 1, Number 2, Number 3]))
-              (Query [Glob (NonEmpty.fromList [LiteralString "2"])])
+              (Query . NonEmpty.fromList $ [Glob (NonEmpty.fromList [LiteralString "2"])])
               (Number 4)
               @?= Array (Vector.fromList [Number 1, Number 2, Number 4]),
           testCase "Can list items using wildcard" $
             queryDoc
+              (Query . NonEmpty.fromList $ [Glob . NonEmpty.fromList $ [LiteralString "b", AnyCharMultiple]])
               ( Object . HashMap.fromList $
                   [ ("beer", Number 1),
                     ("bear", Number 2),
                     ("cart", Number 3)
                   ]
               )
-              (Query [Glob . NonEmpty.fromList $ [LiteralString "b", AnyCharMultiple]])
               @?= [Number 2, Number 1] -- TODO Ordering of keys in HashMap is not stable, test is brittle
         ]
     ]
 
 testNestedArray :: Assertion
-testNestedArray = queryDoc v q @?= ["a"]
+testNestedArray = queryDoc q v @?= ["a"]
   where
     v = Array (Vector.fromList [Array (Vector.fromList ["a"])])
     q =
-      Query
+      Query . NonEmpty.fromList $
         [ Glob (NonEmpty.fromList [LiteralString "0"]),
           Glob (NonEmpty.fromList [LiteralString "0"])
         ]
 
 testNestedObject :: Assertion
-testNestedObject = queryDoc v q @?= [toJSON ("Test" :: Text)]
+testNestedObject = queryDoc q v @?= [toJSON ("Test" :: Text)]
   where
     v =
       Object . HashMap.fromList $
         [ ("a", Object . HashMap.fromList $ [("b", "Test")])
         ]
     q =
-      Query
+      Query . NonEmpty.fromList $
         [ Glob (LiteralString "a" NonEmpty.:| []),
           Glob (LiteralString "b" NonEmpty.:| [])
         ]
@@ -132,11 +159,14 @@ prop_command_parse c = case parser . renderCommand $ c of
   Right (x : _) -> x == c
 
 prop_query_parse :: Query -> Bool
-prop_query_parse q = case parseQuery (renderQuery q) of
+prop_query_parse q = case parseQuery . renderQuery $ q of
   Left _ -> False
   Right qry -> qry == q
 
 prop_move_up_shorten :: Query -> Bool
-prop_move_up_shorten q = len (moveUp q) <= len q
+prop_move_up_shorten q = case moveUp q of
+  Just shorter -> len shorter < len q
+  Nothing -> True
   where
+    len DefaultLocation = 1
     len (Query l) = length l

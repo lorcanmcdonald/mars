@@ -3,7 +3,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Mars.Eval (run, ls, cd, pwd, cat, update, save, load) where
+module Mars.Eval
+  ( run,
+    ls,
+    cd,
+    pwd,
+    cat,
+    update,
+    save,
+    load,
+    ansiColour,
+  )
+where
 
 #if __GLASGOW_HASKELL__ >= 704 && __GLASGOW_HASKELL__ < 710
 import Control.Applicative
@@ -11,17 +22,21 @@ import Control.Applicative
 
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
-import Data.Aeson.Types
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.HashMap.Lazy as Map
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe
 import Data.String
+import Data.String.Conv
+import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Vector as Vector
+import Data.Vector ((!?))
 import Mars.Command
 import Mars.Instances ()
 import Mars.Types
 import System.IO
+import Text.Read (readMaybe)
 
 run :: MarsState -> Command -> IO MarsState
 run s (Cat queries) = s <$ cat s queries
@@ -38,8 +53,9 @@ getDocument s = fromMaybe (object []) $ document s
 cat :: MarsState -> [Query] -> IO ()
 cat s [] =
   putStrLn . (=<<) (ByteString.unpack . encodePretty)
-    . queryDoc (getDocument s)
-    $ path s
+    . queryDoc (path s)
+    . getDocument
+    $ s
 cat s l =
   putStrLn . ByteString.unpack . ByteString.intercalate "\n" $
     (=<<) formattedJSONText l
@@ -47,33 +63,36 @@ cat s l =
     formattedJSONText :: Query -> [ByteString.ByteString]
     formattedJSONText q =
       fmap encodePretty
-        . queryDoc (getDocument s)
-        $ path s <> q
+        . queryDoc (path s <> q)
+        . getDocument
+        $ s
 
 cd :: MarsState -> Query -> IO MarsState
-cd s (Query (LevelAbove : _)) = pure s {path = moveUp (path s)}
 cd s query = pure s {path = newQuery}
   where
     newQuery
       | itemExists = path s
       | otherwise = path s <> query
-    itemExists = null . queryDoc (getDocument s) $ (path s <> query)
+    itemExists =
+      null . queryDoc (path s <> query)
+        . getDocument
+        $ s
 
 pwd :: MarsState -> IO ()
-pwd s = putStrLn . Text.unpack . renderQuery . simplifyQuery $ path s
+pwd = putStrLn . Text.unpack . renderQuery . path
 
 update :: MarsState -> Query -> Value -> IO MarsState
 update s query value = return $ s {document = newDoc}
   where
-    newDoc = maybe Nothing doUpdate (document s)
+    newDoc = doUpdate =<< document s
     doUpdate doc = Just $ modifyDoc doc query value
 
-save :: MarsState -> Text.Text -> IO MarsState
+save :: MarsState -> Text -> IO MarsState
 save s filename = s <$ writeFile (Text.unpack filename) jsonString
   where
     jsonString = ByteString.unpack . encodePretty $ toJSON s
 
-load :: MarsState -> Text.Text -> IO MarsState
+load :: MarsState -> Text -> IO MarsState
 load s filename = do
   c <- readFile . Text.unpack $ filename
   (loadResult . decode . ByteString.pack) c
@@ -87,38 +106,33 @@ load s filename = do
 ls :: MarsState -> Query -> IO ()
 ls s q = putStrLn . Text.unpack . format . list (getDocument s) $ path s <> q
   where
-    format :: [[Text.Text]] -> Text.Text
-    format l = Text.intercalate "\n" (Text.intercalate "\n" <$> l)
-    list :: Value -> Query -> [[Text.Text]]
-    list doc query = asString <$> elements
+    format :: [Text] -> Text
+    format l = Text.intercalate "\n" l
+    list :: Value -> Query -> [Text]
+    list doc DefaultLocation = list doc (Query (Glob (AnyCharMultiple :| []) :| [])) -- 🤔
+    list doc (Query query) =
+      zipWith ansiColour colors entries
       where
-        asString :: Value -> [Text.Text]
-        asString (Object o) = zipWith ansiColour colorChildren keys
-          where
-            keys = Map.keys o
-            colorChildren = [colourMap $ getChild o k | k <- keys]
-        asString (Array a) =
-          [ Text.pack $
-              "Array["
-                <> (show . Vector.length) a
-                <> "]"
-          ]
-        asString _ = []
-        elements :: [Value]
-        elements = queryDoc doc query
-        getChild :: Map.HashMap Text.Text Value -> Text.Text -> Value
-        getChild obj key = fromMaybe emptyObject $ Map.lookup key obj
-        colourMap :: Value -> ANSIColour
-        colourMap (Object _) = Blue
-        colourMap (Array _) = Blue
-        colourMap (String _) = Green
-        colourMap (Number _) = Green
-        colourMap (Bool _) = Green
-        colourMap (Null) = Green
+        entries :: [Text]
+        entries = directoryEntries (NonEmpty.head query) doc
+        colors :: [ANSIColour]
+        colors = map (childColor doc) entries
+        childColor :: Value -> Text -> ANSIColour
+        childColor (Object obj) key = colourMap . fromMaybe Null $ Map.lookup key obj
+        childColor (Array arr) key = colourMap . fromMaybe Null $ do
+          k <- readMaybe . toS $ key
+          arr !? k
+        childColor v _ = colourMap v
 
-data ANSIColour = Grey | Red | Green | Yellow | Blue | Magenta | Cyan | White
+colourMap :: Value -> ANSIColour
+colourMap (Object _) = Blue
+colourMap (Array _) = Blue
+colourMap (String _) = Green
+colourMap (Number _) = Green
+colourMap (Bool _) = Green
+colourMap Null = Green
 
-ansiColour :: ANSIColour -> Text.Text -> Text.Text
+ansiColour :: ANSIColour -> Text -> Text
 ansiColour Grey = ansiWrap "30"
 ansiColour Red = ansiWrap "31"
 ansiColour Green = ansiWrap "32"

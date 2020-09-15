@@ -1,7 +1,16 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Mars.Types where
+module Mars.Types
+  ( Query (..),
+    QueryItem (..),
+    UnnormalizedQueryItem (..),
+    Command (..),
+    GlobItem (..),
+    MarsState (..),
+    ANSIColour (..),
+  )
+where
 
 import Data.Aeson.Types
 import Data.List.NonEmpty
@@ -12,11 +21,10 @@ import GHC.Generics
 -- | The datatype representing the queries possible for commands that select
 --  - items
 --  -
-data Query = Query [QueryItem]
+data Query
+  = DefaultLocation
+  | Query (NonEmpty QueryItem)
   deriving (Generic, Show, Eq)
-
-instance Monoid Query where
-  mempty = Query []
 
 -- | A data type representing the primitive commands available in the Mars
 -- repl
@@ -31,11 +39,21 @@ data Command
   deriving (Generic, Show, Eq, Typeable)
 
 instance Semigroup Query where
+  DefaultLocation <> b = b
+  Query _ <> DefaultLocation = DefaultLocation
   (Query a) <> (Query b) = Query (a <> b)
+
+instance Monoid Query where
+  mempty = DefaultLocation
+
+data UnnormalizedQueryItem
+  = GlobInput (NonEmpty GlobItem)
+  | LevelAbove
+  | CurrentLevel
+  deriving (Generic, Show, Eq)
 
 data QueryItem
   = Glob (NonEmpty GlobItem)
-  | LevelAbove
   deriving (Generic, Show, Eq)
 
 data GlobItem
@@ -50,3 +68,14 @@ data MarsState = MarsState
     document :: Maybe Value
   }
   deriving (Generic)
+
+data ANSIColour
+  = Grey
+  | Red
+  | Green
+  | Yellow
+  | Blue
+  | Magenta
+  | Cyan
+  | White
+  deriving (Show, Eq)
