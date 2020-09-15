@@ -52,7 +52,7 @@ data UnnormalizedQueryItem
   | CurrentLevel
   deriving (Generic, Show, Eq)
 
-data QueryItem
+newtype QueryItem
   = Glob (NonEmpty GlobItem)
   deriving (Generic, Show, Eq)
 
