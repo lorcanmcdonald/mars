@@ -5,7 +5,6 @@ module Mars.Types
   ( ANSIColour (..),
     Command (..),
     GlobItem (..),
-    Oracle (..),
     MarsState (..),
     Query (..),
     QueryItem (..),
