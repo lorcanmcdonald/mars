@@ -56,28 +56,28 @@ unitTests =
     [ testGroup
         "Parsing Commands"
         [ parseCase "ls" [Ls DefaultLocation],
-          testCase "ls *" $
-            parser "ls *"
-              @?= Right
-                [ Ls
-                    ( Query . NonEmpty.fromList $
-                        [ Glob . NonEmpty.fromList $
-                            [AnyCharMultiple]
-                        ]
-                    )
-                ],
-          testCase
+          parseCase "cat" [Cat []],
+          parseCase "pwd" [Pwd],
+          parseCase "cd" [Cd DefaultLocation],
+          parseCase
+            "ls *"
+            [ Ls
+                ( Query . NonEmpty.fromList $
+                    [ Glob . NonEmpty.fromList $
+                        [AnyCharMultiple]
+                    ]
+                )
+            ],
+          parseCase
             "ls b*"
-            $ parser "ls b*"
-              @?= Right
-                [ Ls
-                    ( Query
-                        . NonEmpty.fromList
-                        $ [ Glob . NonEmpty.fromList $
-                              [LiteralString "b", AnyCharMultiple]
-                          ]
-                    )
-                ]
+            [ Ls
+                ( Query
+                    . NonEmpty.fromList
+                    $ [ Glob . NonEmpty.fromList $
+                          [LiteralString "b", AnyCharMultiple]
+                      ]
+                )
+            ]
         ],
       testGroup
         "Parsing Queries"

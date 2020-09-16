@@ -2,13 +2,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Mars.Types
-  ( Query (..),
-    QueryItem (..),
-    UnnormalizedQueryItem (..),
+  ( ANSIColour (..),
     Command (..),
     GlobItem (..),
+    Oracle (..),
     MarsState (..),
-    ANSIColour (..),
+    Query (..),
+    QueryItem (..),
+    UnnormalizedQueryItem (..),
   )
 where
 

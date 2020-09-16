@@ -4,7 +4,6 @@
 
 module Mars.Parser where
 
-import Data.Maybe
 import Control.Applicative
 import Control.Monad
 import qualified Data.Aeson.Parser as AesonParser
@@ -13,6 +12,7 @@ import Data.Attoparsec.ByteString (parseOnly)
 import qualified Data.ByteString.Char8 as ByteString
 import Data.Functor.Identity
 import Data.List.NonEmpty (NonEmpty, fromList)
+import Data.Maybe
 import Data.String.Conv
 import qualified Data.Text as Text
 import Mars.Command
@@ -35,18 +35,10 @@ commandLine :: forall u. ParsecT String u Identity [Command]
 commandLine = (command `sepBy` char '|') <* eof
 
 command :: forall u. ParsecT String u Identity Command
-command = keywordWithArg <|> keyword
-
-keyword :: forall u. ParsecT String u Identity Command
-keyword =
+command =
   try (Pwd <$ string "pwd")
-    <|> try (Cat [] <$ string "cat")
-    <|> try (Ls mempty <$ string "ls")
-    <?> "keyword"
-
-keywordWithArg :: forall u. ParsecT String u Identity Command
-keywordWithArg =
-  try (Cat <$> (string "cat" *> spaces *> query `sepBy` string " "))
+    <|> try (Cat <$> (string "cat" *> space *> spaces *> (query `sepBy1` (string " " *> spaces))))
+    <|> try (Cat <$> ([] <$ string "cat"))
     <|> try (Ls <$> (string "ls" *> spaces *> query))
     <|> try (Save <$> (string "save" *> spaces *> filename))
     <|> try (Load <$> (string "load" *> spaces *> filename))
@@ -56,7 +48,6 @@ keywordWithArg =
       )
     <|> try (Cd <$> (string "cd" *> spaces *> query))
     <|> try (Cd mempty <$ string "cd")
-    <?> "keyword and argument"
 
 queryString :: forall u. ParsecT String u Identity (String, String)
 queryString = (,) <$> (string "&" *> noEquals) <*> (string "=" *> noSpaces)
