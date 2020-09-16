@@ -12,8 +12,10 @@ import Data.Attoparsec.ByteString (parseOnly)
 import qualified Data.ByteString.Char8 as ByteString
 import Data.Functor.Identity
 import Data.List.NonEmpty (NonEmpty, fromList)
+import Data.Maybe
 import Data.String.Conv
 import qualified Data.Text as Text
+import Mars.Command
 import Mars.Types
 import Text.Parsec.Prim (ParsecT)
 import Text.ParserCombinators.Parsec hiding ((<|>))
@@ -33,18 +35,10 @@ commandLine :: forall u. ParsecT String u Identity [Command]
 commandLine = (command `sepBy` char '|') <* eof
 
 command :: forall u. ParsecT String u Identity Command
-command = keywordWithArg <|> keyword
-
-keyword :: forall u. ParsecT String u Identity Command
-keyword =
+command =
   try (Pwd <$ string "pwd")
-    <|> try (Cat [] <$ string "cat")
-    <|> try (Ls (Query []) <$ string "ls")
-    <?> "keyword"
-
-keywordWithArg :: forall u. ParsecT String u Identity Command
-keywordWithArg =
-  try (Cat <$> (string "cat" *> spaces *> query `sepBy` string " "))
+    <|> try (Cat <$> (string "cat" *> space *> spaces *> (query `sepBy1` (string " " *> spaces))))
+    <|> try (Cat <$> ([] <$ string "cat"))
     <|> try (Ls <$> (string "ls" *> spaces *> query))
     <|> try (Save <$> (string "save" *> spaces *> filename))
     <|> try (Load <$> (string "load" *> spaces *> filename))
@@ -53,8 +47,7 @@ keywordWithArg =
           <*> (spaces *> value)
       )
     <|> try (Cd <$> (string "cd" *> spaces *> query))
-    <|> try (Cd (Query []) <$ string "cd")
-    <?> "keyword and argument"
+    <|> try (Cd mempty <$ string "cd")
 
 queryString :: forall u. ParsecT String u Identity (String, String)
 queryString = (,) <$> (string "&" *> noEquals) <*> (string "=" *> noSpaces)
@@ -63,13 +56,14 @@ query :: forall u. ParsecT String u Identity Query
 query =
   do
     items <- queryItem `sepBy` string (Text.unpack querySeparator)
-    return . Query $ items
+    return $ fromMaybe mempty . normalizeQuery $ items
     <?> "query"
 
-queryItem :: forall u. ParsecT String u Identity QueryItem
+queryItem :: forall u. ParsecT String u Identity UnnormalizedQueryItem
 queryItem =
-  try (LevelAbove <$ string "..")
-    <|> try (Glob <$> globItems)
+  try (CurrentLevel <$ string ".")
+    <|> (LevelAbove <$ string "..")
+    <|> try (GlobInput <$> globItems)
     <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String

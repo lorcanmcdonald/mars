@@ -3,43 +3,45 @@
 
 -- | Types representing items entered at the Mars command line
 module Mars.Command
-  ( globKeys,
+  ( directoryEntries,
+    globIndices,
+    globKeys,
     modifyDoc,
     moveUp,
+    normalizeQuery,
     queryDoc,
     renderCommand,
     renderQuery,
-    simplifyQuery,
+    renderUnnormalizedQueryItem,
   )
 where
 
 import Control.Category
-import Control.Lens
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import Data.Functor
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as Map
 import Data.Ix
-import Data.List.NonEmpty (NonEmpty, toList)
+import Data.List.NonEmpty (NonEmpty (..), toList)
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe
 import Data.Monoid
 import Data.String.Conv
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Vector as Vector
+import Data.Vector ((!?), (//), Vector)
 import Mars.Types
 import Text.Parsec (Parsec)
 import Text.ParserCombinators.Parsec hiding ((<|>))
+import Text.Read (readMaybe)
 import Prelude hiding ((.), id)
 
 -- | Output a command in a format similar to how it would have be entered by the
 -- user
 renderCommand :: Command -> Text.Text
-renderCommand (Cat []) = "cat"
 renderCommand (Cat l) =
-  "cat "
-    <> Text.intercalate " " (renderQuery <$> l)
+  Text.intercalate " " $ "cat" : (renderQuery <$> l)
 renderCommand (Ls a) = "ls " <> renderQuery a
 renderCommand (Save f) = "save " <> f
 renderCommand (Load f) = "load \"" <> f <> "\""
@@ -53,48 +55,126 @@ renderCommand (Cd a) = "cd " <> renderQuery a
 
 -- | Output a query in a format that would have been entered in the interpreter
 renderQuery :: Query -> Text.Text
-renderQuery (Query l) = Text.intercalate "/" (renderQueryItem <$> l)
+renderQuery DefaultLocation = "/"
+renderQuery (Query l) =
+  Text.intercalate "/"
+    . NonEmpty.toList
+    $ (renderQueryItem <$> l)
 
 -- | A text version of a QueryItem
+renderUnnormalizedQueryItem :: UnnormalizedQueryItem -> Text.Text
+renderUnnormalizedQueryItem (GlobInput g) = mconcat . map renderGlob . toList $ g
+renderUnnormalizedQueryItem LevelAbove = Text.pack ".."
+renderUnnormalizedQueryItem CurrentLevel = Text.pack "."
+
 renderQueryItem :: QueryItem -> Text.Text
 renderQueryItem (Glob g) = mconcat . map renderGlob . toList $ g
-renderQueryItem LevelAbove = Text.pack ".."
 
 renderGlob :: GlobItem -> Text.Text
 renderGlob AnyChar = "?"
 renderGlob AnyCharMultiple = "*"
 renderGlob (LiteralString s) = s
 
-moveUp :: Query -> Query
-moveUp (Query q) = Query . reverse . drop 1 $ reverse q
+moveUp :: Query -> Maybe Query
+moveUp DefaultLocation = Nothing
+moveUp (Query q) = Query <$> (NonEmpty.nonEmpty . NonEmpty.init $ q)
 
-simplifyQuery :: Query -> Query
-simplifyQuery (Query l) = Query . reverse . foldr simplify [] $ reverse l
+normalizeQuery :: [UnnormalizedQueryItem] -> Maybe Query
+normalizeQuery l =
+  Query
+    <$> ( NonEmpty.nonEmpty
+            . reverse
+            . fmap unsafeToQI
+            . foldr simplify []
+            . reverse
+            $ l
+        )
   where
-    simplify :: QueryItem -> [QueryItem] -> [QueryItem]
+    unsafeToQI :: UnnormalizedQueryItem -> QueryItem
+    unsafeToQI (GlobInput g) = Glob g
+    unsafeToQI i =
+      error $
+        "`normalizeQuery` did not remove an "
+          <> show i
+          <> ". This is a bug in `mars`"
+    simplify :: UnnormalizedQueryItem -> [UnnormalizedQueryItem] -> [UnnormalizedQueryItem]
+    simplify CurrentLevel processed = processed
     simplify LevelAbove processed = drop 1 processed
     simplify item processed = item : processed
 
+queryDoc :: Query -> Value -> [Value]
+queryDoc DefaultLocation v = [v]
+queryDoc (Query q) v =
+  let x = NonEmpty.head q
+      xs = NonEmpty.tail q
+      values = queryItemLens x v
+   in case NonEmpty.nonEmpty xs of
+        Nothing -> concatMap (queryDoc DefaultLocation) values
+        Just list -> concatMap (queryDoc (Query list)) values
+
 modifyDoc :: Value -> Query -> Value -> Value
-modifyDoc v q = set (modifyLens q) v
+modifyDoc _ DefaultLocation val = val
+modifyDoc doc (Query query) val =
+  let x = NonEmpty.head query
+      xs = NonEmpty.tail query
+   in modifyDoc' doc x xs val
+  where
+    modifyDoc' :: Value -> QueryItem -> [QueryItem] -> Value -> Value
+    modifyDoc' (Object o) (Glob glob) [] v =
+      Object
+        . foldr
+          (`Map.insert` v)
+          o
+        . globKeys o
+        $ glob
+    modifyDoc' (Object o) (Glob glob) xs v =
+      foldr (applyChanges v (Query . NonEmpty.fromList $ xs)) (Object o)
+        . globKeys o
+        $ glob
+    modifyDoc' (Array a) (Glob glob) [] v =
+      Array
+        . foldr
+          (\key arr -> arr // [(key, v)])
+          a
+        . globIndices a
+        $ glob
+    modifyDoc' (Array a) (Glob glob) xs v =
+      foldr (applyChanges v (Query . NonEmpty.fromList $xs)) (Array a)
+        . fmap (toS . show)
+        . globIndices a
+        $ glob
+    modifyDoc' (String _) _ _ v = v
+    modifyDoc' (Number _) _ _ v = v
+    modifyDoc' (Bool _) _ _ v = v
+    modifyDoc' Null _ _ v = v
 
-queryDoc :: Value -> Query -> [Value]
-queryDoc v q = queryLens q v
+applyChanges :: Value -> Query -> Text -> Value -> Value
+applyChanges v xs key (Object obj) = modifyDoc (fromJust . Map.lookup key $ obj) xs v
+applyChanges v xs key (Array arr) =
+  case readMaybe . toS $ key of
+    Just k -> modifyDoc (fromJust $ arr !? k) xs v
+    Nothing -> Array arr
+applyChanges _ _ _ s@(String _) = s
+applyChanges _ _ _ s@(Number _) = s
+applyChanges _ _ _ s@(Bool _) = s
+applyChanges _ _ _ s@Null = s
 
-modifyLens :: Query -> Lens' Value Value
-modifyLens _ = error "modifyLens"
-
--- TODO queryLens is not even a Lenslike now
-queryLens :: Query -> Value -> [Value]
-queryLens (Query []) v = [v]
-queryLens (Query (x : xs)) v =
-  let values = queryItemLens x v
-   in concatMap (queryLens (Query xs)) values
+directoryEntries :: QueryItem -> Value -> [Text]
+directoryEntries (Glob globMap) (Object o) = globKeys o globMap
+directoryEntries (Glob globMap) (Array o) =
+  map
+    (toS . show)
+    . globIndices o
+    $ globMap
+directoryEntries _ (String _) = []
+directoryEntries _ (Number _) = []
+directoryEntries _ (Bool _) = []
+directoryEntries _ Null = []
 
 globKeys :: HashMap Text a -> NonEmpty GlobItem -> [Text]
 globKeys obj glob = filter (match glob) . Map.keys $ obj
 
-globIndices :: Vector.Vector a -> NonEmpty GlobItem -> [Int]
+globIndices :: Vector a -> NonEmpty GlobItem -> [Int]
 globIndices vec glob =
   map (read . toS)
     . filter (match glob)
@@ -115,20 +195,15 @@ match l v = case parse (mkParser l) "" v of
     toParser AnyCharMultiple = () <$ many anyToken
 
 queryItemLens :: QueryItem -> Value -> [Value]
-queryItemLens item = getter item
-  where
-    getter :: QueryItem -> Value -> [Value]
-    getter LevelAbove _ = error "[5fd31a02] LevelAbove should be optimised out by this point. Need to revisit types"
-    getter (Glob glob) (Object o) =
-      catMaybes
-        . map (`Map.lookup` o)
-        $ globKeys o glob
-    getter (Glob glob) (Array a) =
-      catMaybes . map (a Vector.!?) $ (globIndices a glob)
-    getter (Glob _) (String _) = ([] :: [Value])
-    getter (Glob _) (Number _) = ([] :: [Value])
-    getter (Glob _) (Bool _) = ([] :: [Value])
-    getter (Glob _) (Null) = []
+queryItemLens (Glob glob) (Object o) =
+  mapMaybe (`Map.lookup` o) $
+    globKeys o glob
+queryItemLens (Glob glob) (Array a) =
+  mapMaybe (a !?) $ globIndices a glob
+queryItemLens (Glob _) (String _) = [] :: [Value]
+queryItemLens (Glob _) (Number _) = [] :: [Value]
+queryItemLens (Glob _) (Bool _) = [] :: [Value]
+queryItemLens (Glob _) Null = []
 
 -- setter :: QueryItem -> [Value] -> [Value] -> Value
 -- setter (Glob glob) v [Array a] =
