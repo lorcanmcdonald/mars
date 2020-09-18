@@ -3,8 +3,7 @@
 
 -- | Types representing items entered at the Mars command line
 module Mars.Command
-  ( directoryEntries,
-    globIndices,
+  ( globIndices,
     globKeys,
     modifyDoc,
     moveUp,
@@ -158,18 +157,6 @@ applyChanges _ _ _ s@(String _) = s
 applyChanges _ _ _ s@(Number _) = s
 applyChanges _ _ _ s@(Bool _) = s
 applyChanges _ _ _ s@Null = s
-
-directoryEntries :: QueryItem -> Value -> [Text]
-directoryEntries (Glob globMap) (Object o) = globKeys o globMap
-directoryEntries (Glob globMap) (Array o) =
-  map
-    (toS . show)
-    . globIndices o
-    $ globMap
-directoryEntries _ (String _) = []
-directoryEntries _ (Number _) = []
-directoryEntries _ (Bool _) = []
-directoryEntries _ Null = []
 
 globKeys :: HashMap Text a -> NonEmpty GlobItem -> [Text]
 globKeys obj glob = filter (match glob) . Map.keys $ obj
