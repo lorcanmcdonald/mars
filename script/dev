@@ -3,7 +3,6 @@ set -euo pipefail
 IFS=$'\n\t'
 
 export TASTY_HIDE_SUCCESSES=True
-export TASTY_QUICKCHECK_TESTS=20
 
 ghcid \
   --lint \
