@@ -4,7 +4,10 @@
 module Mars.Types
   ( ANSIColour (..),
     Command (..),
+    DirectoryEntry (..),
     GlobItem (..),
+    ItemName (..),
+    ItemType (..),
     MarsState (..),
     Query (..),
     QueryItem (..),
@@ -14,6 +17,7 @@ where
 
 import Data.Aeson.Types
 import Data.List.NonEmpty
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Typeable
 import GHC.Generics
@@ -78,4 +82,19 @@ data ANSIColour
   | Magenta
   | Cyan
   | White
+  deriving (Show, Eq)
+
+data DirectoryEntry = DirectoryEntry ItemName ItemType
+  deriving (Show, Eq)
+
+newtype ItemName = ItemName Text
+  deriving (Show, Eq)
+
+data ItemType
+  = MarsObject
+  | MarsList
+  | MarsString
+  | MarsNumber
+  | MarsBool
+  | MarsNull
   deriving (Show, Eq)

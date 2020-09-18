@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Data.Aeson
+import Data.Either (fromRight)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.String.Conv
@@ -24,6 +25,7 @@ tests =
   testGroup
     "Martian Tests"
     [ unitTests,
+      stateTests,
       queryProperties,
       evaluationTests
     ]
@@ -46,8 +48,60 @@ evaluationTests =
     "Evaluation"
     [ testProperty
         "colored text contains text"
-        (\color text -> (length . Text.breakOnAll text . ansiColour color $ text) /= 0)
+        (\color text -> (length . Text.breakOnAll text . ansiColor color $ text) /= 0)
     ]
+
+stateTests :: TestTree
+stateTests =
+  testGroup
+    "State Updates"
+    [ testGroup "cd" [test_cd_existing],
+      testGroup "ls" [test_ls_top_level, test_ls_second_level]
+    ]
+
+initMarsState :: Text -> MarsState
+initMarsState t =
+  MarsState
+    { path = DefaultLocation,
+      document = decode . toS $ t
+    }
+
+test_cd_existing :: TestTree
+test_cd_existing =
+  testCase
+    "cd to existing object"
+    $ path newState @?= q
+  where
+    (newState, _) = cd oldState q
+    q = fromRight (error "parseQuery test_cd_existing") . parseQuery $ "a"
+    oldState = initMarsState "{\"a\": {}}"
+
+test_ls_top_level :: TestTree
+test_ls_top_level =
+  testCase
+    "ls should print entries for top level"
+    $ stdout @?= Output (ansiColor Green "\"a\"" :: Text)
+  where
+    (_, stdout) = ls state q
+    q = fromRight (error "aef322") . parseQuery $ ""
+    state = initMarsState "{\"a\": true}"
+
+test_ls_second_level :: TestTree
+test_ls_second_level =
+  testCase
+    "ls should print entries for second level"
+    $ stdout
+      @?= Output
+        ( Text.intercalate
+            "\n"
+            [ ansiColor Green "\"ann\"",
+              ansiColor Green "\"barry\"" :: Text
+            ]
+        )
+  where
+    (_, stdout) = ls state q
+    q = fromRight (error "aef322") . parseQuery $ "a"
+    state = initMarsState "{\"a\": {\"ann\": true, \"barry\": 1}}"
 
 unitTests :: TestTree
 unitTests =
