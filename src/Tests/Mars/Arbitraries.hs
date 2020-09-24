@@ -10,78 +10,44 @@ import Control.Applicative
 
 import Data.Aeson
 import qualified Data.HashMap.Lazy as Map
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
-import qualified Data.Text as Text
+import Data.String.Conv
+import Data.Text (Text)
+-- import qualified Data.Text as Text
 import qualified Data.Vector as Vector
+import Mars.Parser
 import Mars.Types
 import Test.QuickCheck
-import qualified Test.QuickCheck.Modifiers as Modifiers
 
-instance Arbitrary Text.Text where
-  arbitrary = Text.pack <$> arbString
+-- instance Arbitrary Text.Text where
+--   arbitrary = Text.pack <$> arbString
 
--- TODO we are explicitly not testing empty strings here, we really should
-arbString :: Gen String
+arbString :: Gen Text
 arbString =
-  listOf
-    (elements (['A' .. 'Z'] <> ['a' .. 'z']))
+  toS
+    <$> listOf
+      (elements (['A' .. 'Z'] <> ['a' .. 'z']))
     `suchThat` (not . null)
 
-arbDict :: Gen [(String, String)]
+arbDict :: Gen [(Text, Text)]
 arbDict = listOf stupple
 
-stupple :: Gen (String, String)
+stupple :: Gen (Text, Text)
 stupple = (,) <$> arbString <*> arbString
-
-instance Arbitrary Value where
-  arbitrary =
-    oneof
-      [ Array <$> arbitrary,
-        String <$> arbitrary,
-        -- , Number <$> arbitrary
-        Bool <$> arbitrary,
-        pure Null
-      ]
-
--- Only creates list of length four to prevent runaway data structures
-instance Arbitrary Array where
-  arbitrary = Vector.fromListN 4 <$> listOf arbitrary
 
 arbPort :: Gen (Maybe Integer)
 arbPort = oneof [pure Nothing]
 
-instance Arbitrary Command where
-  arbitrary =
-    oneof
-      [ Cat <$> arbitrary,
-        Ls <$> arbitrary,
-        Save <$> arbitrary,
-        Load <$> arbitrary,
-        Update <$> arbitrary <*> arbitrary,
-        Cd <$> arbitrary,
-        pure Pwd
-      ]
-
-instance Arbitrary Query where
-  arbitrary = Query . NonEmpty.fromList . Modifiers.getNonEmpty <$> arbitrary
-
-genGlob :: Gen (NonEmpty GlobItem)
-genGlob = do
-  startGlob <- Modifiers.getNonEmpty <$> arbitrary
-  specialGlob <- oneof [pure AnyChar, pure AnyCharMultiple]
-  endGlob <- Modifiers.getNonEmpty <$> arbitrary
-  return . NonEmpty.fromList $ (startGlob <> [specialGlob] <> endGlob)
-
-instance Arbitrary QueryItem where
-  arbitrary =
-    oneof
-      [ Glob <$> genGlob
-      ]
-
-instance Arbitrary GlobItem where
-  arbitrary =
-    oneof [pure AnyChar, pure AnyCharMultiple]
+arbitraryCommand :: Gen Operation
+arbitraryCommand =
+  oneof
+    [ OpCat <$> arbitrary,
+      OpLs <$> arbitrary,
+      OpSave <$> arbitrary,
+      OpLoad <$> arbitrary,
+      OpSet <$> arbitrary,
+      OpCd <$> arbitrary,
+      OpPwd <$> arbitrary
+    ]
 
 arbitraryPositiveInt :: Gen Int
 arbitraryPositiveInt = arbitrary `suchThat` (> 0)
@@ -93,7 +59,7 @@ arbitraryArray :: Gen Array
 arbitraryArray = Vector.fromList <$> arbitrary
 
 arbitraryObject :: Gen Object
-arbitraryObject = Map.fromList <$> arbitrary
+arbitraryObject = Map.fromList <$> (listOf ((,) <$> arbString <*> arbitrary))
 
 instance Arbitrary ANSIColour where
   arbitrary =

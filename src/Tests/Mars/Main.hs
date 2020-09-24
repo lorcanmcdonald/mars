@@ -4,13 +4,19 @@ import Data.Aeson
 import Data.Either (fromRight)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.Maybe
 import Data.String.Conv
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import Mars.Command
+import Mars.Command.Cat
+import Mars.Command.Cd
+import Mars.Command.Ls
+import Mars.Command.Pwd
 import Mars.Eval
 import Mars.Parser
+import Mars.Query
 import Mars.Types
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -39,8 +45,18 @@ queryProperties =
       testProperty "move up shortens" prop_move_up_shorten
     ]
 
-parseCase :: String -> [Command] -> TestTree
+parseCase :: String -> [Operation] -> TestTree
 parseCase s q = testCase s $ parser (toS s) @?= Right q
+
+newtype WrappedText = WrappedText Text
+  deriving (Show)
+
+instance Arbitrary WrappedText where
+  arbitrary =
+    WrappedText . toS
+      <$> listOf
+        (elements (['A' .. 'Z'] <> ['a' .. 'z']))
+      `suchThat` (not . null)
 
 evaluationTests :: TestTree
 evaluationTests =
@@ -48,8 +64,12 @@ evaluationTests =
     "Evaluation"
     [ testProperty
         "colored text contains text"
-        (\color text -> (length . Text.breakOnAll text . ansiColor color $ text) /= 0)
+        prop_contains_colored_text
     ]
+
+prop_contains_colored_text :: ANSIColour -> WrappedText -> Bool
+prop_contains_colored_text color (WrappedText text) =
+  (length . Text.breakOnAll text . ansiColor color $ text) /= 0
 
 stateTests :: TestTree
 stateTests =
@@ -63,7 +83,7 @@ initMarsState :: Text -> MarsState
 initMarsState t =
   MarsState
     { path = DefaultLocation,
-      document = decode . toS $ t
+      document = fromJust . decode . toS $ t
     }
 
 test_cd_existing :: TestTree
@@ -72,7 +92,7 @@ test_cd_existing =
     "cd to existing object"
     $ path newState @?= q
   where
-    (newState, _) = cd oldState q
+    (newState, _) = evalCommand oldState (Cd q)
     q = fromRight (error "parseQuery test_cd_existing") . parseQuery $ "a"
     oldState = initMarsState "{\"a\": {}}"
 
@@ -82,7 +102,7 @@ test_ls_top_level =
     "ls should print entries for top level"
     $ stdout @?= Output (ansiColor Green "\"a\"" :: Text)
   where
-    (_, stdout) = ls state q
+    (_, stdout) = evalCommand state (Ls q)
     q = fromRight (error "aef322") . parseQuery $ ""
     state = initMarsState "{\"a\": true}"
 
@@ -99,7 +119,7 @@ test_ls_second_level =
             ]
         )
   where
-    (_, stdout) = ls state q
+    (_, stdout) = evalCommand state (Ls q)
     q = fromRight (error "aef322") . parseQuery $ "a"
     state = initMarsState "{\"a\": {\"ann\": true, \"barry\": 1}}"
 
@@ -109,13 +129,13 @@ unitTests =
     "Unit Tests"
     [ testGroup
         "Parsing Commands"
-        [ parseCase "ls" [Ls DefaultLocation],
-          parseCase "cat" [Cat []],
-          parseCase "pwd" [Pwd],
-          parseCase "cd" [Cd DefaultLocation],
+        [ parseCase "ls" [OpLs . Ls $ DefaultLocation],
+          parseCase "cat" [OpCat . Cat $ []],
+          parseCase "pwd" [OpPwd Pwd],
+          parseCase "cd" [OpCd . Cd $ DefaultLocation],
           parseCase
             "ls *"
-            [ Ls
+            [ OpLs . Ls $
                 ( Query . NonEmpty.fromList $
                     [ Glob . NonEmpty.fromList $
                         [AnyCharMultiple]
@@ -124,13 +144,12 @@ unitTests =
             ],
           parseCase
             "ls b*"
-            [ Ls
-                ( Query
-                    . NonEmpty.fromList
-                    $ [ Glob . NonEmpty.fromList $
-                          [LiteralString "b", AnyCharMultiple]
-                      ]
-                )
+            [ OpLs . Ls
+                $ Query
+                  . NonEmpty.fromList
+                $ [ Glob . NonEmpty.fromList $
+                      [LiteralString "b", AnyCharMultiple]
+                  ]
             ]
         ],
       testGroup
@@ -206,11 +225,28 @@ testNestedObject = queryDoc q v @?= [toJSON ("Test" :: Text)]
           Glob (LiteralString "b" NonEmpty.:| [])
         ]
 
-prop_command_parse :: Command -> Bool
-prop_command_parse c = case parser . renderCommand $ c of
-  Left _ -> False
-  Right [] -> False
-  Right (x : _) -> x == c
+prop_command_parse :: Operation -> Bool
+prop_command_parse (OpCat c) = case parser . renderCommand $ c of
+  Right ((OpCat x) : _) -> x == c
+  _ -> False
+prop_command_parse (OpCd c) = case parser . renderCommand $ c of
+  Right ((OpCd x) : _) -> x == c
+  _ -> False
+prop_command_parse (OpLoad c) = case parser . renderCommand $ c of
+  Right ((OpLoad x) : _) -> x == c
+  _ -> False
+prop_command_parse (OpLs c) = case parser . renderCommand $ c of
+  Right ((OpLs x) : _) -> x == c
+  _ -> False
+prop_command_parse (OpPwd c) = case parser . renderCommand $ c of
+  Right ((OpPwd x) : _) -> x == c
+  _ -> False
+prop_command_parse (OpSave c) = case parser . renderCommand $ c of
+  Right ((OpSave x) : _) -> x == c
+  _ -> False
+prop_command_parse (OpSet c) = case parser . renderCommand $ c of
+  Right ((OpSet x) : _) -> x == c
+  _ -> False
 
 prop_query_parse :: Query -> Bool
 prop_query_parse q = case parseQuery . renderQuery $ q of
