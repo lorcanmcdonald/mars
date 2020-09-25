@@ -12,11 +12,10 @@ import Test.QuickCheck
 
 -- import Text.ParserCombinators.Parsec hiding ((<|>))
 
-data Cd = Cd Query
+newtype Cd = Cd Query
   deriving (Generic, Show, Eq, Typeable)
 
 instance Command Cd where
-  readCommand = error "readCommand Cd"
   evalCommand s (Cd query) =
     let newState = s {path = newQuery}
      in (newState, Output "")
@@ -29,7 +28,7 @@ instance Command Cd where
           . document
           $ s
   printCommand = error "printCommand"
-  renderCommand = error "renderCommand"
+  renderCommand (Cd a) = "cd " <> renderQuery a
 
 instance Arbitrary Cd where
   arbitrary = Cd <$> arbitrary

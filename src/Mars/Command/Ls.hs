@@ -22,11 +22,10 @@ import Test.QuickCheck
 
 -- import Text.ParserCombinators.Parsec hiding ((<|>))
 
-data Ls = Ls Query
+newtype Ls = Ls Query
   deriving (Generic, Show, Eq, Typeable)
 
 instance Command Ls where
-  readCommand = error "readCommand"
   evalCommand s (Ls DefaultLocation) = (s, Output . format . list (document s) $ path s)
     where
       format :: [DirectoryEntry] -> Text
@@ -46,7 +45,7 @@ instance Command Ls where
             (colorMap <$> l)
           $ (\(DirectoryEntry (ItemName name) _) -> name) <$> l
   printCommand = error "printCommand"
-  renderCommand = error "renderCommand"
+  renderCommand (Ls a) = "ls " <> renderQuery a
 
 list :: Value -> Query -> [DirectoryEntry]
 list doc query =

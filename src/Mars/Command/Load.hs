@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Mars.Command.Load (Load (..)) where
 
@@ -14,11 +15,10 @@ import Test.QuickCheck
 
 -- import Text.ParserCombinators.Parsec hiding ((<|>))
 
-data Load = Load Text
+newtype Load = Load Text
   deriving (Generic, Show, Eq, Typeable)
 
 instance Command Load where
-  readCommand = error "readCommand Load"
   evalCommand = error "evalCommand Load"
 
   -- evalCommand s filename = do
@@ -31,13 +31,14 @@ instance Command Load where
   --     reportResult (Success state) = pure state
   --     printErr err = s <$ hPutStrLn stderr ("Invalid saved state: " <> err)
   printCommand = error "printCommand"
-  renderCommand = error "renderCommand"
+  renderCommand (Load f) = "load \"" <> f <> "\""
 
 instance Arbitrary Load where
   arbitrary = Load <$> arbString
 
 arbString :: Gen Text
-arbString = toS <$>
-  listOf
-    (elements (['A' .. 'Z'] <> ['a' .. 'z']))
+arbString =
+  toS
+    <$> listOf
+      (elements (['A' .. 'Z'] <> ['a' .. 'z']))
     `suchThat` (not . null)

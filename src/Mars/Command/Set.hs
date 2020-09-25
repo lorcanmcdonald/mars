@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Mars.Command.Set (Set (..)) where
 
@@ -20,7 +20,6 @@ data Set = Set Query Value
   deriving (Generic, Show, Eq, Typeable)
 
 instance Command Set where
-  readCommand = error "readCommand"
   evalCommand s (Set query value) = (s {document = newDoc}, Output "")
     where
       newDoc :: Value
@@ -28,7 +27,11 @@ instance Command Set where
       doUpdate :: Value -> Value
       doUpdate doc = modifyDoc doc query value
   printCommand = error "printCommand"
-  renderCommand = error "renderCommand"
+  renderCommand (Set q val) =
+    "set "
+      <> renderQuery q
+      <> " "
+      <> (toS . encode $ val)
 
 instance Arbitrary Set where
   arbitrary = Set <$> arbitrary <*> arbitrary

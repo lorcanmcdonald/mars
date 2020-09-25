@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Mars.Command.Save (Save (..)) where
 
@@ -17,25 +18,24 @@ import Test.QuickCheck
 -- import Text.Parsec.Prim (ParsecT)
 -- import Text.ParserCombinators.Parsec hiding ((<|>))
 
-data Save = Save Text
+newtype Save = Save Text
   deriving (Generic, Show, Eq, Typeable)
 
 instance Command Save where
-  readCommand = error "readCommand Save"
   evalCommand = error "evalCommand Save"
 
   -- evalCommand s filename = s <$ writeFile (toS filename) jsonString
   --   where
   --     jsonString = toS . encodePretty $ toJSON s
   printCommand = error "printCommand"
-  renderCommand = error "renderCommand"
+  renderCommand (Save f) = "save " <> f
 
 instance Arbitrary Save where
   arbitrary = Save <$> arbString
 
 arbString :: Gen Text
 arbString =
-  toS <$>
-    listOf
+  toS
+    <$> listOf
       (elements (['A' .. 'Z'] <> ['a' .. 'z']))
-      `suchThat` (not . null)
+    `suchThat` (not . null)

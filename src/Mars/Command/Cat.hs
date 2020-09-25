@@ -3,7 +3,6 @@
 
 module Mars.Command.Cat (Cat (..)) where
 
-import Control.Applicative ((<|>))
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy as ByteString
 import Data.String.Conv
@@ -14,15 +13,11 @@ import Mars.Command
 import Mars.Query
 import Mars.Types
 import Test.QuickCheck
-import Text.ParserCombinators.Parsec hiding ((<|>))
 
-data Cat = Cat [Query]
+newtype Cat = Cat [Query]
   deriving (Generic, Show, Eq, Typeable)
 
 instance Command Cat where
-  readCommand =
-    try (Cat <$> (string "cat" *> space *> spaces *> (query `sepBy1` (string " " *> spaces))))
-      <|> try (Cat <$> ([] <$ string "cat"))
   evalCommand s (Cat []) =
     ( s,
       Output . toS

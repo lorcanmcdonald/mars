@@ -17,9 +17,7 @@ where
 
 import Control.Category
 import Data.Aeson
--- import qualified Data.ByteString.Lazy.Char8 as ByteString
 import Data.Functor
-import Data.Functor.Identity
 import qualified Data.HashMap.Strict as Map
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe
@@ -28,31 +26,13 @@ import Data.Text (Text)
 import Data.Vector ((!?), (//))
 import Mars.Query
 import Mars.Types
-import Text.Parsec.Prim (ParsecT)
 import Text.Read (readMaybe)
 import Prelude hiding ((.), id)
 
 class Command a where
-  readCommand :: ParsecT String u Identity a
   evalCommand :: MarsState -> a -> (MarsState, Output)
   printCommand :: a -> (MarsState, Output) -> IO MarsState
   renderCommand :: a -> Text
-
--- | Output a command in a format similar to how it would have be entered by the
--- user
--- renderCommand :: Command a => a -> Text.Text
--- renderCommand (Cat l) =
---   Text.intercalate " " $ "cat" : (renderQuery <$> l)
--- renderCommand (Ls a) = "ls " <> renderQuery a
--- renderCommand (Save f) = "save " <> f
--- renderCommand (Load f) = "load \"" <> f <> "\""
--- renderCommand (Update q val) =
---   "update "
---     <> renderQuery q
---     <> " "
---     <> Text.pack (ByteString.unpack $ encode val)
--- renderCommand Pwd = "pwd"
--- renderCommand (Cd a) = "cd " <> renderQuery a
 
 -- | A text version of a QueryItem
 moveUp :: Query -> Maybe Query
