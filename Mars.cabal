@@ -38,6 +38,7 @@ library
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
   build-depends: QuickCheck
@@ -54,7 +55,8 @@ library
              , unordered-containers
              , url
              , vector
-  ghc-options: -O2 -threaded -Wall -Werror
+  ghc-options: -O2 -Wall -Werror
+  default-language:    Haskell2010
 
 executable mars
   Hs-Source-Dirs:
@@ -73,6 +75,7 @@ executable mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
   autogen-modules:
@@ -87,6 +90,7 @@ executable mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
   build-depends: Mars
@@ -128,6 +132,7 @@ Test-suite test-mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
     autogen-modules:
@@ -142,6 +147,7 @@ Test-suite test-mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
 
@@ -163,6 +169,7 @@ Test-suite test-mars
                   , unordered-containers
                   , url
                   , vector
+  default-language:    Haskell2010
 
 source-repository head
     type: git

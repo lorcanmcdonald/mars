@@ -18,6 +18,7 @@ import qualified Data.Vector as Vector
 import GHC.Generics
 import Mars.Command
 import Mars.Query (Query (..))
+import Mars.Renderable
 import Mars.Types
 import Test.QuickCheck
 import Prelude hiding (putStrLn)
@@ -47,7 +48,9 @@ instance Command Ls where
   printCommand _ (state, Output o) = do
     putStrLn o
     return state
-  renderCommand (Ls a) = "ls " <> renderQuery a
+
+instance Renderable Ls where
+  render (Ls a) = "ls " <> render a
 
 list :: Value -> Query -> [DirectoryEntry]
 list doc query =

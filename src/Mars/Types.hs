@@ -27,6 +27,7 @@ data MarsState = MarsState
   deriving (Generic)
 
 instance FromJSON MarsState
+
 instance ToJSON MarsState
 
 data ANSIColour

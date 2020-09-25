@@ -10,6 +10,7 @@ import Data.Text (Text)
 import Data.Typeable
 import GHC.Generics
 import Mars.Command
+import Mars.Renderable
 import Mars.Types
 import Test.QuickCheck
 
@@ -22,7 +23,8 @@ instance Command Save where
     where
       jsonString = toS . encodePretty $ toJSON s
 
-  renderCommand (Save f) = "save " <> f
+instance Renderable Save where
+  render (Save f) = "save " <> f
 
 instance Arbitrary Save where
   arbitrary = Save <$> arbString

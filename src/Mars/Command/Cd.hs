@@ -8,11 +8,10 @@ import Data.Typeable
 import GHC.Generics
 import Mars.Command
 import Mars.Query (Query)
+import Mars.Renderable
 import Mars.Types
 import Test.QuickCheck
 import Prelude hiding (putStrLn)
-
--- import Text.ParserCombinators.Parsec hiding ((<|>))
 
 newtype Cd = Cd Query
   deriving (Generic, Show, Eq, Typeable)
@@ -32,7 +31,9 @@ instance Command Cd where
   printCommand _ (state, Output o) = do
     putStrLn o
     return state
-  renderCommand (Cd a) = "cd " <> renderQuery a
+
+instance Renderable Cd where
+  render (Cd a) = "cd " <> render a
 
 instance Arbitrary Cd where
   arbitrary = Cd <$> arbitrary

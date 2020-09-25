@@ -12,6 +12,7 @@ import Mars.Command
 import Mars.Types
 import System.IO (hPutStrLn, stderr)
 import Test.QuickCheck
+import Mars.Renderable
 
 newtype Load = Load Text
   deriving (Generic, Show, Eq, Typeable)
@@ -27,7 +28,9 @@ instance Command Load where
       reportResult (Aeson.Error err) = printErr err
       reportResult (Aeson.Success state) = pure state
       printErr err = s <$ hPutStrLn stderr ("Invalid saved state: " <> err)
-  renderCommand (Load f) = "load \"" <> f <> "\""
+
+instance Renderable Load where
+  render (Load f) = "load \"" <> f <> "\""
 
 instance Arbitrary Load where
   arbitrary = Load <$> arbString
