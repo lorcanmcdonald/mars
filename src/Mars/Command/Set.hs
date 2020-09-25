@@ -5,18 +5,19 @@
 
 module Mars.Command.Set (Set (..)) where
 
-import Data.Text.IO (putStrLn)
-import Prelude hiding (putStrLn)
 import Data.Aeson
 import Data.String.Conv
 import Data.Text (Text)
+import Data.Text.IO (putStrLn)
 import Data.Typeable
 import qualified Data.Vector as Vector
 import GHC.Generics
 import Mars.Command
 import Mars.Query (Query)
+import Mars.Renderable
 import Mars.Types
 import Test.QuickCheck
+import Prelude hiding (putStrLn)
 
 data Set = Set Query Value
   deriving (Generic, Show, Eq, Typeable)
@@ -31,9 +32,11 @@ instance Command Set where
   printCommand _ (state, Output o) = do
     putStrLn o
     return state
-  renderCommand (Set q val) =
+
+instance Renderable Set where
+  render (Set q val) =
     "set "
-      <> renderQuery q
+      <> render q
       <> " "
       <> (toS . encode $ val)
 

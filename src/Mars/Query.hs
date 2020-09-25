@@ -14,9 +14,6 @@ module Mars.Query
     globItem,
     globKeys,
     globIndices,
-    renderQuery,
-    renderQueryItem,
-    renderUnnormalizedQueryItem,
   )
 where
 
@@ -34,6 +31,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Vector (Vector)
 import GHC.Generics
+import Mars.Renderable
 import Test.QuickCheck
 import qualified Test.QuickCheck.Modifiers as Modifiers
 import Text.Parsec (Parsec)
@@ -60,6 +58,7 @@ instance Arbitrary Query where
   arbitrary = Query . NonEmpty.fromList . Modifiers.getNonEmpty <$> arbitrary
 
 instance FromJSON Query
+
 instance ToJSON Query
 
 newtype QueryItem
@@ -73,6 +72,7 @@ instance Arbitrary QueryItem where
       ]
 
 instance FromJSON QueryItem
+
 instance ToJSON QueryItem
 
 genGlob :: Gen (NonEmpty GlobItem)
@@ -99,27 +99,27 @@ instance Arbitrary GlobItem where
     oneof [pure AnyChar, pure AnyCharMultiple]
 
 instance FromJSON GlobItem
+
 instance ToJSON GlobItem
 
 -- | The character used to separate query items when entered on the commandline
 querySeparator :: Text.Text
 querySeparator = "/"
 
--- | Output a query in a format that would have been entered in the interpreter
-renderQuery :: Query -> Text
-renderQuery DefaultLocation = "/"
-renderQuery (Query l) =
-  Text.intercalate querySeparator
-    . toList
-    $ (renderQueryItem <$> l)
+instance Renderable Query where
+  render DefaultLocation = "/"
+  render (Query l) =
+    Text.intercalate querySeparator
+      . toList
+      $ (render <$> l)
 
-renderUnnormalizedQueryItem :: UnnormalizedQueryItem -> Text.Text
-renderUnnormalizedQueryItem (GlobInput g) = mconcat . map renderGlob . toList $ g
-renderUnnormalizedQueryItem LevelAbove = Text.pack ".."
-renderUnnormalizedQueryItem CurrentLevel = Text.pack "."
+instance Renderable UnnormalizedQueryItem where
+  render (GlobInput g) = mconcat . map renderGlob . toList $ g
+  render LevelAbove = Text.pack ".."
+  render CurrentLevel = Text.pack "."
 
-renderQueryItem :: QueryItem -> Text
-renderQueryItem (Glob g) = mconcat . toList $ renderGlob <$> g
+instance Renderable QueryItem where
+  render (Glob g) = mconcat . toList $ renderGlob <$> g
 
 renderGlob :: GlobItem -> Text.Text
 renderGlob AnyChar = "?"

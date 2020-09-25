@@ -11,7 +11,6 @@ module Mars.Command
     moveUp,
     normalizeQuery,
     queryDoc,
-    renderQuery,
   )
 where
 
@@ -32,7 +31,6 @@ import Prelude hiding ((.), id)
 class Command a where
   evalCommand :: MarsState -> a -> (MarsState, Output)
   printCommand :: a -> (MarsState, Output) -> IO MarsState
-  renderCommand :: a -> Text
 
 -- | A text version of a QueryItem
 moveUp :: Query -> Maybe Query

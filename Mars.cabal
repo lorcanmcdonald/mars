@@ -38,6 +38,7 @@ library
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
   build-depends: QuickCheck
@@ -73,6 +74,7 @@ executable mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
   autogen-modules:
@@ -87,6 +89,7 @@ executable mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
   build-depends: Mars
@@ -128,6 +131,7 @@ Test-suite test-mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
     autogen-modules:
@@ -142,6 +146,7 @@ Test-suite test-mars
       Mars.Eval
       Mars.Parser
       Mars.Query
+      Mars.Renderable
       Mars.Types
       Tests.Mars.Arbitraries
 

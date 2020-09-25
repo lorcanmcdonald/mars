@@ -16,6 +16,7 @@ import Mars.Command.Ls
 import Mars.Command.Pwd
 import Mars.Parser
 import Mars.Query
+import Mars.Renderable
 import Mars.Types
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -225,30 +226,30 @@ testNestedObject = queryDoc q v @?= [toJSON ("Test" :: Text)]
         ]
 
 prop_command_parse :: Operation -> Bool
-prop_command_parse (OpCat c) = case parser . renderCommand $ c of
+prop_command_parse (OpCat c) = case parser . render $ c of
   Right ((OpCat x) : _) -> x == c
   _ -> False
-prop_command_parse (OpCd c) = case parser . renderCommand $ c of
+prop_command_parse (OpCd c) = case parser . render $ c of
   Right ((OpCd x) : _) -> x == c
   _ -> False
-prop_command_parse (OpLoad c) = case parser . renderCommand $ c of
+prop_command_parse (OpLoad c) = case parser . render $ c of
   Right ((OpLoad x) : _) -> x == c
   _ -> False
-prop_command_parse (OpLs c) = case parser . renderCommand $ c of
+prop_command_parse (OpLs c) = case parser . render $ c of
   Right ((OpLs x) : _) -> x == c
   _ -> False
-prop_command_parse (OpPwd c) = case parser . renderCommand $ c of
+prop_command_parse (OpPwd c) = case parser . render $ c of
   Right ((OpPwd x) : _) -> x == c
   _ -> False
-prop_command_parse (OpSave c) = case parser . renderCommand $ c of
+prop_command_parse (OpSave c) = case parser . render $ c of
   Right ((OpSave x) : _) -> x == c
   _ -> False
-prop_command_parse (OpSet c) = case parser . renderCommand $ c of
+prop_command_parse (OpSet c) = case parser . render $ c of
   Right ((OpSet x) : _) -> x == c
   _ -> False
 
 prop_query_parse :: Query -> Bool
-prop_query_parse q = case parseQuery . renderQuery $ q of
+prop_query_parse q = case parseQuery . render $ q of
   Left _ -> False
   Right qry -> qry == q
 

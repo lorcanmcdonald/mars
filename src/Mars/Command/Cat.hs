@@ -12,6 +12,7 @@ import Data.Typeable
 import GHC.Generics
 import Mars.Command
 import Mars.Query
+import Mars.Renderable
 import Mars.Types
 import Test.QuickCheck
 import Prelude hiding (putStrLn)
@@ -43,7 +44,9 @@ instance Command Cat where
   printCommand _ (state, Output o) = do
     putStrLn o
     return state
-  renderCommand (Cat l) = Text.intercalate " " $ "cat" : (renderQuery <$> l)
+
+instance Renderable Cat where
+  render (Cat l) = Text.intercalate " " $ "cat" : (render <$> l)
 
 instance Arbitrary Cat where
   arbitrary = Cat <$> arbitrary
