@@ -59,7 +59,7 @@ arbitraryArray :: Gen Array
 arbitraryArray = Vector.fromList <$> arbitrary
 
 arbitraryObject :: Gen Object
-arbitraryObject = Map.fromList <$> (listOf ((,) <$> arbString <*> arbitrary))
+arbitraryObject = Map.fromList <$> listOf ((,) <$> arbString <*> arbitrary)
 
 instance Arbitrary ANSIColour where
   arbitrary =
