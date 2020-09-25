@@ -14,7 +14,6 @@ import Mars.Command.Cat
 import Mars.Command.Cd
 import Mars.Command.Ls
 import Mars.Command.Pwd
-import Mars.Eval
 import Mars.Parser
 import Mars.Query
 import Mars.Types
