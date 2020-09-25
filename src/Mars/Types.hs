@@ -1,5 +1,4 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Mars.Types
@@ -26,6 +25,9 @@ data MarsState = MarsState
     document :: Value
   }
   deriving (Generic)
+
+instance FromJSON MarsState
+instance ToJSON MarsState
 
 data ANSIColour
   = Grey

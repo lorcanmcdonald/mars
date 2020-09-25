@@ -5,6 +5,8 @@
 
 module Mars.Command.Set (Set (..)) where
 
+import Data.Text.IO (putStrLn)
+import Prelude hiding (putStrLn)
 import Data.Aeson
 import Data.String.Conv
 import Data.Text (Text)
@@ -26,7 +28,9 @@ instance Command Set where
       newDoc = doUpdate . document $ s
       doUpdate :: Value -> Value
       doUpdate doc = modifyDoc doc query value
-  printCommand = error "printCommand"
+  printCommand _ (state, Output o) = do
+    putStrLn o
+    return state
   renderCommand (Set q val) =
     "set "
       <> renderQuery q

@@ -3,12 +3,14 @@
 
 module Mars.Command.Cd (Cd (..)) where
 
+import Data.Text.IO (putStrLn)
 import Data.Typeable
 import GHC.Generics
 import Mars.Command
 import Mars.Query (Query)
 import Mars.Types
 import Test.QuickCheck
+import Prelude hiding (putStrLn)
 
 -- import Text.ParserCombinators.Parsec hiding ((<|>))
 
@@ -27,7 +29,9 @@ instance Command Cd where
         null . queryDoc (path s <> query)
           . document
           $ s
-  printCommand = error "printCommand"
+  printCommand _ (state, Output o) = do
+    putStrLn o
+    return state
   renderCommand (Cd a) = "cd " <> renderQuery a
 
 instance Arbitrary Cd where

@@ -12,6 +12,7 @@ import Data.String
 import Data.String.Conv
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Text.IO (putStrLn)
 import Data.Typeable
 import qualified Data.Vector as Vector
 import GHC.Generics
@@ -19,8 +20,7 @@ import Mars.Command
 import Mars.Query (Query (..))
 import Mars.Types
 import Test.QuickCheck
-
--- import Text.ParserCombinators.Parsec hiding ((<|>))
+import Prelude hiding (putStrLn)
 
 newtype Ls = Ls Query
   deriving (Generic, Show, Eq, Typeable)
@@ -44,7 +44,9 @@ instance Command Ls where
             ansiColor
             (colorMap <$> l)
           $ (\(DirectoryEntry (ItemName name) _) -> name) <$> l
-  printCommand = error "printCommand"
+  printCommand _ (state, Output o) = do
+    putStrLn o
+    return state
   renderCommand (Ls a) = "ls " <> renderQuery a
 
 list :: Value -> Query -> [DirectoryEntry]

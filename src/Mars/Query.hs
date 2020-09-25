@@ -21,6 +21,7 @@ module Mars.Query
 where
 
 import Control.Applicative ((<|>))
+import Data.Aeson hiding ((<?>))
 import Data.Functor.Identity
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as Map
@@ -58,6 +59,9 @@ instance Monoid Query where
 instance Arbitrary Query where
   arbitrary = Query . NonEmpty.fromList . Modifiers.getNonEmpty <$> arbitrary
 
+instance FromJSON Query
+instance ToJSON Query
+
 newtype QueryItem
   = Glob (NonEmpty GlobItem)
   deriving (Generic, Show, Eq)
@@ -67,6 +71,9 @@ instance Arbitrary QueryItem where
     oneof
       [ Glob <$> genGlob
       ]
+
+instance FromJSON QueryItem
+instance ToJSON QueryItem
 
 genGlob :: Gen (NonEmpty GlobItem)
 genGlob = do
@@ -90,6 +97,9 @@ data GlobItem
 instance Arbitrary GlobItem where
   arbitrary =
     oneof [pure AnyChar, pure AnyCharMultiple]
+
+instance FromJSON GlobItem
+instance ToJSON GlobItem
 
 -- | The character used to separate query items when entered on the commandline
 querySeparator :: Text.Text

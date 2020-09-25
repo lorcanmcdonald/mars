@@ -7,12 +7,14 @@ import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy as ByteString
 import Data.String.Conv
 import qualified Data.Text as Text
+import Data.Text.IO (putStrLn)
 import Data.Typeable
 import GHC.Generics
 import Mars.Command
 import Mars.Query
 import Mars.Types
 import Test.QuickCheck
+import Prelude hiding (putStrLn)
 
 newtype Cat = Cat [Query]
   deriving (Generic, Show, Eq, Typeable)
@@ -38,7 +40,9 @@ instance Command Cat where
           . queryDoc (path s <> q)
           . document
           $ s
-  printCommand = error "printCommand"
+  printCommand _ (state, Output o) = do
+    putStrLn o
+    return state
   renderCommand (Cat l) = Text.intercalate " " $ "cat" : (renderQuery <$> l)
 
 instance Arbitrary Cat where
