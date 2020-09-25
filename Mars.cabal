@@ -28,10 +28,17 @@ library
   hs-source-dirs: src/
   exposed-modules:
       Mars.Command
-      Mars.Parser
+      Mars.Command.Cat
+      Mars.Command.Cd
+      Mars.Command.Load
+      Mars.Command.Ls
+      Mars.Command.Pwd
+      Mars.Command.Save
+      Mars.Command.Set
       Mars.Eval
+      Mars.Parser
+      Mars.Query
       Mars.Types
-      Mars.Instances
       Tests.Mars.Arbitraries
   build-depends: QuickCheck
              , lens
@@ -55,19 +62,33 @@ executable mars
     src
   main-is: Main.hs
   other-modules:
-    Mars.Command
-    Mars.Eval
-    Mars.Instances
-    Mars.Parser
-    Mars.Types
-    Tests.Mars.Arbitraries
+      Mars.Command
+      Mars.Command.Cat
+      Mars.Command.Cd
+      Mars.Command.Load
+      Mars.Command.Ls
+      Mars.Command.Pwd
+      Mars.Command.Save
+      Mars.Command.Set
+      Mars.Eval
+      Mars.Parser
+      Mars.Query
+      Mars.Types
+      Tests.Mars.Arbitraries
   autogen-modules:
-    Mars.Command
-    Mars.Eval
-    Mars.Instances
-    Mars.Parser
-    Mars.Types
-    Tests.Mars.Arbitraries
+      Mars.Command
+      Mars.Command.Cat
+      Mars.Command.Cd
+      Mars.Command.Load
+      Mars.Command.Ls
+      Mars.Command.Pwd
+      Mars.Command.Save
+      Mars.Command.Set
+      Mars.Eval
+      Mars.Parser
+      Mars.Query
+      Mars.Types
+      Tests.Mars.Arbitraries
   build-depends: Mars
                  , QuickCheck
                  , aeson
@@ -97,16 +118,30 @@ Test-suite test-mars
     Main-is: Main.hs
     other-modules:
       Mars.Command
+      Mars.Command.Cat
+      Mars.Command.Cd
+      Mars.Command.Load
+      Mars.Command.Ls
+      Mars.Command.Pwd
+      Mars.Command.Save
+      Mars.Command.Set
       Mars.Eval
-      Mars.Instances
       Mars.Parser
+      Mars.Query
       Mars.Types
       Tests.Mars.Arbitraries
     autogen-modules:
       Mars.Command
+      Mars.Command.Cat
+      Mars.Command.Cd
+      Mars.Command.Load
+      Mars.Command.Ls
+      Mars.Command.Pwd
+      Mars.Command.Save
+      Mars.Command.Set
       Mars.Eval
-      Mars.Instances
       Mars.Parser
+      Mars.Query
       Mars.Types
       Tests.Mars.Arbitraries
 

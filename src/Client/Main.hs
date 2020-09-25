@@ -8,10 +8,12 @@ import Control.Exception
 import Control.Monad
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as ByteString
+import Data.Maybe
 import qualified Data.Text as Text
 import Data.Text.IO as TIO
 import Mars.Eval
 import Mars.Parser
+import Mars.Query
 import Mars.Types
 import Options.Applicative
 import System.Console.Haskeline
@@ -39,14 +41,6 @@ testTTY = hIsTerminalDevice stdin
 
 data Mars = Mars {jsonFilename :: String, noninteractive :: Bool}
 
--- | The initial state
-initialState :: MarsState
-initialState =
-  MarsState
-    { path = DefaultLocation,
-      document = Nothing
-    }
-
 main :: IO ()
 main = execParser opts >>= runWithOptions
   where
@@ -69,10 +63,19 @@ runWithOptions opts = do
 
   if isTTY && not (noninteractive opts)
     then -- Start an interactive session
-      readEvalPrintLoop $ initialState {document = json2Doc jsonString}
+    case json2Doc jsonString of
+      Just doc -> readEvalPrintLoop $ MarsState {path = DefaultLocation, document = doc}
+      Nothing -> TIO.putStrLn "Could not parse JSON document"
     else do
       input <- TIO.hGetContents stdin
-      _ <- exec initialState (Text.lines input)
+      _ <-
+        exec
+          ( MarsState
+              { path = DefaultLocation,
+                document = fromJust . json2Doc $ ""
+              }
+          )
+          (Text.lines input)
       return ()
   where
     json2Doc :: ByteString.ByteString -> Maybe Value
@@ -113,4 +116,10 @@ eval s input = case parser input of
     print err
     return s
   Right [] -> return s
-  Right (x : _) -> run s x
+  Right (OpCat x : _) -> run s x
+  Right (OpCd x : _) -> run s x
+  Right (OpLoad x : _) -> run s x
+  Right (OpLs x : _) -> run s x
+  Right (OpPwd x : _) -> run s x
+  Right (OpSave x : _) -> run s x
+  Right (OpSet x : _) -> run s x

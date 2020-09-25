@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
 module Mars.Parser where
@@ -11,80 +12,74 @@ import qualified Data.Aeson.Types as AesonTypes
 import Data.Attoparsec.ByteString (parseOnly)
 import qualified Data.ByteString.Char8 as ByteString
 import Data.Functor.Identity
-import Data.List.NonEmpty (NonEmpty, fromList)
-import Data.Maybe
 import Data.String.Conv
 import qualified Data.Text as Text
-import Mars.Command
-import Mars.Types
+import Mars.Command.Cat
+import Mars.Command.Cd
+import Mars.Command.Load
+import Mars.Command.Ls
+import Mars.Command.Pwd
+import Mars.Command.Save
+import Mars.Command.Set
+import Mars.Query (query, querySeparator)
+import Test.QuickCheck
 import Text.Parsec.Prim (ParsecT)
 import Text.ParserCombinators.Parsec hiding ((<|>))
 
--- | The character used to separate query items when entered on the commandline
-querySeparator :: Text.Text
-querySeparator = "/"
+data Operation
+  = OpCat Cat
+  | OpCd Cd
+  | OpLoad Load
+  | OpLs Ls
+  | OpPwd Pwd
+  | OpSave Save
+  | OpSet Set
+  deriving (Show, Eq)
 
-parser :: Text.Text -> Either ParseError [Command]
-parser l = parse commandLine "" $ Text.unpack l
+instance Arbitrary Operation where
+  arbitrary =
+    oneof
+      [ OpCat <$> arbitrary,
+        OpCd <$> arbitrary,
+        OpLoad <$> arbitrary,
+        OpLs <$> arbitrary,
+        OpPwd <$> arbitrary,
+        OpSave <$> arbitrary,
+        OpSet <$> arbitrary
+      ]
 
-parseQuery :: Text.Text -> Either ParseError Query
-parseQuery s = parse query "" $ Text.unpack s
+parser :: Text.Text -> Either ParseError [Operation]
+parser l = parse commandLine "" $ toS l
 
 -- | Parse a list of commands
-commandLine :: forall u. ParsecT String u Identity [Command]
+commandLine :: forall u. ParsecT String u Identity [Operation]
 commandLine = (command `sepBy` char '|') <* eof
 
-command :: forall u. ParsecT String u Identity Command
+command :: forall u. ParsecT String u Identity Operation
 command =
-  try (Pwd <$ string "pwd")
-    <|> try (Cat <$> (string "cat" *> space *> spaces *> (query `sepBy1` (string " " *> spaces))))
-    <|> try (Cat <$> ([] <$ string "cat"))
-    <|> try (Ls <$> (string "ls" *> spaces *> query))
-    <|> try (Save <$> (string "save" *> spaces *> filename))
-    <|> try (Load <$> (string "load" *> spaces *> filename))
+  try (OpLs . Ls <$> (string "ls" *> spaces *> query))
+    <|> try (OpPwd Pwd <$ string "pwd")
+    <|> try (OpCat . Cat <$> (string "cat" *> space *> spaces *> (query `sepBy1` (string " " *> spaces))))
+    <|> try (OpCat . Cat <$> ([] <$ string "cat"))
+    <|> try (OpSave . Save <$> (string "save" *> spaces *> filename))
+    <|> try (OpLoad . Load <$> (string "load" *> spaces *> filename))
     <|> try
-      ( Update <$> (string "update" *> spaces *> query)
-          <*> (spaces *> value)
+      ( OpSet
+          <$> ( Set <$> (string "set" *> spaces *> query)
+                  <*> (spaces *> value)
+              )
       )
-    <|> try (Cd <$> (string "cd" *> spaces *> query))
-    <|> try (Cd mempty <$ string "cd")
+    <|> ( try (OpCd . Cd <$> (string "cd" *> spaces *> query))
+            <|> try ((OpCd . Cd) mempty <$ string "cd")
+        )
 
 queryString :: forall u. ParsecT String u Identity (String, String)
 queryString = (,) <$> (string "&" *> noEquals) <*> (string "=" *> noSpaces)
-
-query :: forall u. ParsecT String u Identity Query
-query =
-  do
-    items <- queryItem `sepBy` string (Text.unpack querySeparator)
-    return $ fromMaybe mempty . normalizeQuery $ items
-    <?> "query"
-
-queryItem :: forall u. ParsecT String u Identity UnnormalizedQueryItem
-queryItem =
-  try (CurrentLevel <$ string ".")
-    <|> (LevelAbove <$ string "..")
-    <|> try (GlobInput <$> globItems)
-    <?> "queryItem"
 
 namedItem :: forall u. ParsecT String u Identity String
 namedItem =
   (many1 . noneOf . fmap (head . Text.unpack) $ [querySeparator, " ", "*", "?"])
     <?> "namedItem"
-
-globItems :: ParsecT String u Identity (NonEmpty GlobItem)
-globItems = do
-  items <- many1 globItem
-  return . fromList $ items
-
-globItem :: ParsecT String u Identity GlobItem
-globItem =
-  try (AnyChar <$ string "?")
-    <|> try (AnyCharMultiple <$ string "*")
-    <|> try
-      ( do
-          str <- many1 . noneOf $ "/ *?"
-          return . LiteralString . toS $ str
-      )
 
 filename :: forall u. ParsecT String u Identity Text.Text
 filename =
