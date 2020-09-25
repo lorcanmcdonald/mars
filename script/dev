@@ -5,7 +5,9 @@ IFS=$'\n\t'
 export TASTY_HIDE_SUCCESSES=True
 export TASTY_QUICKCHECK_TESTS=20
 
+executable=${1:-"test-mars"}
+
 ghcid \
   --lint \
-  --command="cabal v2-repl test-mars" \
+  --command="cabal v2-repl $executable" \
   --test="main"
