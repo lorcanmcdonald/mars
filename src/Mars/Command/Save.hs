@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Mars.Command.Save (Save (..)) where
@@ -17,11 +18,15 @@ import Test.QuickCheck
 newtype Save = Save Text
   deriving (Generic, Show, Eq, Typeable)
 
-instance Command Save where
-  evalCommand s (Save filename) = (s, Output filename)
-  printCommand _ (s, Output filename) = s <$ writeFile (toS filename) jsonString
+data SaveResult = SaveToFile Text Value
+
+instance Command Save SaveResult where
+  evalCommand s (Save filename) = SaveToFile filename (document s)
+
+instance Action SaveResult where
+  execCommand s (SaveToFile filename value) = s <$ writeFile (toS filename) jsonString
     where
-      jsonString = toS . encodePretty $ toJSON s
+      jsonString = toS . encodePretty $ toJSON value
 
 instance Renderable Save where
   render (Save f) = "save " <> f

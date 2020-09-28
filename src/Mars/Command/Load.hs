@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Mars.Command.Load (Load (..)) where
@@ -9,17 +10,20 @@ import Data.Text (Text)
 import Data.Typeable
 import GHC.Generics
 import Mars.Command
-import Mars.Types
+import Mars.Renderable
 import System.IO (hPutStrLn, stderr)
 import Test.QuickCheck
-import Mars.Renderable
 
 newtype Load = Load Text
   deriving (Generic, Show, Eq, Typeable)
 
-instance Command Load where
-  evalCommand s (Load filename) = (s, Output filename)
-  printCommand _ (s, Output filename) = do
+newtype LoadResult = LoadFile Text
+
+instance Command Load LoadResult where
+  evalCommand _ (Load filename) = LoadFile filename
+
+instance Action LoadResult where
+  execCommand s (LoadFile filename) = do
     c <- readFile . toS $ filename
     (loadResult . decode . toS) c
     where
