@@ -75,7 +75,11 @@ stateTests :: TestTree
 stateTests =
   testGroup
     "State Updates"
-    [ testGroup "cd" [test_cd_existing],
+    [ testGroup
+        "cd"
+        [ test_cd_existing,
+          test_cd_nonexisting
+        ],
       testGroup "ls" [test_ls_top_level, test_ls_second_level]
     ]
 
@@ -90,19 +94,29 @@ test_cd_existing :: TestTree
 test_cd_existing =
   testCase
     "cd to existing object"
-    $ path newState @?= q
+    $ newPath @?= q
   where
-    (newState, _) = evalCommand oldState (Cd q)
+    (ChangePath newPath) = evalCommand oldState (Cd q)
     q = fromRight (error "parseQuery test_cd_existing") . parseQuery $ "a"
+    oldState = initMarsState "{\"a\": {}}"
+
+test_cd_nonexisting :: TestTree
+test_cd_nonexisting =
+  testCase
+    "cd to existing object"
+    $ newPath @?= path oldState
+  where
+    (ChangePath newPath) = evalCommand oldState (Cd q)
+    q = fromRight (error "parseQuery test_cd_nonexisting") . parseQuery $ "b"
     oldState = initMarsState "{\"a\": {}}"
 
 test_ls_top_level :: TestTree
 test_ls_top_level =
   testCase
     "ls should print entries for top level"
-    $ stdout @?= Output (ansiColor Green "\"a\"" :: Text)
+    $ result @?= DirectoryEntries [DirectoryEntry (ItemName "a") MarsBool]
   where
-    (_, stdout) = evalCommand state (Ls q)
+    result = evalCommand state (Ls q)
     q = fromRight (error "aef322") . parseQuery $ ""
     state = initMarsState "{\"a\": true}"
 
@@ -110,16 +124,13 @@ test_ls_second_level :: TestTree
 test_ls_second_level =
   testCase
     "ls should print entries for second level"
-    $ stdout
-      @?= Output
-        ( Text.intercalate
-            "\n"
-            [ ansiColor Green "\"ann\"",
-              ansiColor Green "\"barry\"" :: Text
-            ]
-        )
+    $ result
+      @?= DirectoryEntries
+        [ DirectoryEntry (ItemName "ann") MarsBool,
+          DirectoryEntry (ItemName "barry") MarsNumber
+        ]
   where
-    (_, stdout) = evalCommand state (Ls q)
+    result = evalCommand state (Ls q)
     q = fromRight (error "aef322") . parseQuery $ "a"
     state = initMarsState "{\"a\": {\"ann\": true, \"barry\": 1}}"
 

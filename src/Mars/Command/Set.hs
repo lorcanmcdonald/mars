@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -8,7 +9,6 @@ module Mars.Command.Set (Set (..)) where
 import Data.Aeson
 import Data.String.Conv
 import Data.Text (Text)
-import Data.Text.IO (putStrLn)
 import Data.Typeable
 import qualified Data.Vector as Vector
 import GHC.Generics
@@ -22,16 +22,18 @@ import Prelude hiding (putStrLn)
 data Set = Set Query Value
   deriving (Generic, Show, Eq, Typeable)
 
-instance Command Set where
-  evalCommand s (Set query value) = (s {document = newDoc}, Output "")
+newtype SetResult = ReplaceDocument Value
+
+instance Command Set SetResult where
+  evalCommand s (Set query value) = ReplaceDocument newDoc
     where
       newDoc :: Value
       newDoc = doUpdate . document $ s
       doUpdate :: Value -> Value
       doUpdate doc = modifyDoc doc query value
-  printCommand _ (state, Output o) = do
-    putStrLn o
-    return state
+
+instance Action SetResult where
+  execCommand state (ReplaceDocument newDoc) = pure $ state {document = newDoc}
 
 instance Renderable Set where
   render (Set q val) =

@@ -1,8 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Mars.Command.Pwd (Pwd (..)) where
 
+import Data.Text (Text)
 import Data.Text.IO (putStrLn)
 import Data.Typeable
 import GHC.Generics
@@ -15,9 +17,13 @@ import Prelude hiding (putStrLn)
 data Pwd = Pwd
   deriving (Generic, Show, Eq, Typeable)
 
-instance Command Pwd where
-  evalCommand s Pwd = (s, Output . render . path $ s)
-  printCommand _ (state, Output o) = do
+newtype PwdResult = Print Text
+
+instance Command Pwd PwdResult where
+  evalCommand s Pwd = Print . render . path $ s
+
+instance Action PwdResult where
+  execCommand state (Print o) = do
     putStrLn o
     return state
 

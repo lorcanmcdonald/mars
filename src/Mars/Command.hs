@@ -1,10 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Rank2Types #-}
 
 -- | Types representing items entered at the Mars command line
 module Mars.Command
   ( Command (..),
+    Action (..),
     globIndices,
     globKeys,
     modifyDoc,
@@ -28,9 +29,11 @@ import Mars.Types
 import Text.Read (readMaybe)
 import Prelude hiding ((.), id)
 
-class Command a where
-  evalCommand :: MarsState -> a -> (MarsState, Output)
-  printCommand :: a -> (MarsState, Output) -> IO MarsState
+class Command a o | a -> o where
+  evalCommand :: MarsState -> a -> o
+
+class Action o where
+  execCommand :: MarsState -> o -> IO MarsState
 
 -- | A text version of a QueryItem
 moveUp :: Query -> Maybe Query
@@ -57,9 +60,7 @@ modifyDoc doc (Query q) val =
     modifyDoc' :: Value -> QueryItem -> [QueryItem] -> Value -> Value
     modifyDoc' (Object o) (Glob glob) [] v =
       Object
-        . foldr
-          (`Map.insert` v)
-          o
+        . foldr (`Map.insert` v) o
         . globKeys o
         $ glob
     modifyDoc' (Object o) (Glob glob) xs v =
@@ -68,9 +69,7 @@ modifyDoc doc (Query q) val =
         $ glob
     modifyDoc' (Array a) (Glob glob) [] v =
       Array
-        . foldr
-          (\key arr -> arr // [(key, v)])
-          a
+        . foldr (\key arr -> arr // [(key, v)]) a
         . globIndices a
         $ glob
     modifyDoc' (Array a) (Glob glob) xs v =

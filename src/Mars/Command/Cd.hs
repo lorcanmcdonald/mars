@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Mars.Command.Cd (Cd (..)) where
+module Mars.Command.Cd (Cd (..), CdResult (..)) where
 
-import Data.Text.IO (putStrLn)
 import Data.Typeable
 import GHC.Generics
 import Mars.Command
@@ -16,21 +16,19 @@ import Prelude hiding (putStrLn)
 newtype Cd = Cd Query
   deriving (Generic, Show, Eq, Typeable)
 
-instance Command Cd where
-  evalCommand s (Cd query) =
-    let newState = s {path = newQuery}
-     in (newState, Output "")
+newtype CdResult = ChangePath Query
+
+instance Command Cd CdResult where
+  evalCommand s (Cd query) = ChangePath newQuery
     where
       newQuery
-        | itemExists = path s
-        | otherwise = path s <> query
-      itemExists =
-        null . queryDoc (path s <> query)
-          . document
-          $ s
-  printCommand _ (state, Output o) = do
-    putStrLn o
-    return state
+        | itemExists = path s <> query
+        | otherwise = path s
+      itemExists = not . null . queryDoc (path s <> query) . document $ s
+
+instance Action CdResult where
+  execCommand state (ChangePath newQuery) =
+    pure $ state {path = newQuery}
 
 instance Renderable Cd where
   render (Cd a) = "cd " <> render a

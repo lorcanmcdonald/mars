@@ -1,8 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
-module Mars.Command.Ls (Ls (..), ansiColor) where
+module Mars.Command.Ls (Ls (..), LsResult (..), ansiColor) where
 
 import Data.Aeson
 import qualified Data.HashMap.Strict as Map
@@ -26,28 +27,25 @@ import Prelude hiding (putStrLn)
 newtype Ls = Ls Query
   deriving (Generic, Show, Eq, Typeable)
 
-instance Command Ls where
-  evalCommand s (Ls DefaultLocation) = (s, Output . format . list (document s) $ path s)
-    where
-      format :: [DirectoryEntry] -> Text
-      format l =
-        Text.intercalate "\n"
-          . zipWith
-            ansiColor
-            (colorMap <$> l)
-          $ (\(DirectoryEntry (ItemName name) _) -> name) <$> l
-  evalCommand s (Ls q) = (s, Output . format . list (document s) $ path s <> q)
-    where
-      format :: [DirectoryEntry] -> Text
-      format l =
-        Text.intercalate "\n"
-          . zipWith
-            ansiColor
-            (colorMap <$> l)
-          $ (\(DirectoryEntry (ItemName name) _) -> name) <$> l
-  printCommand _ (state, Output o) = do
-    putStrLn o
+newtype LsResult = DirectoryEntries [DirectoryEntry]
+  deriving (Generic, Show, Eq, Typeable)
+
+instance Command Ls LsResult where
+  evalCommand s (Ls DefaultLocation) = DirectoryEntries . list (document s) $ path s
+  evalCommand s (Ls q) = DirectoryEntries . list (document s) $ path s <> q
+
+instance Action LsResult where
+  execCommand state (DirectoryEntries o) = do
+    putStrLn . format $ o
     return state
+    where
+      format :: [DirectoryEntry] -> Text
+      format l =
+        Text.intercalate "\n"
+          . zipWith
+            ansiColor
+            (colorMap <$> l)
+          $ (\(DirectoryEntry (ItemName name) _) -> name) <$> l
 
 instance Renderable Ls where
   render (Ls a) = "ls " <> render a
@@ -61,7 +59,7 @@ directoryEntries (Object o) =
   let toDirectoryEntry :: (Text, Value) -> DirectoryEntry
       toDirectoryEntry (name, v) =
         DirectoryEntry
-          (ItemName . toS . show $ name)
+          (ItemName . toS $ name)
           (toItemType v)
    in toDirectoryEntry
         <$> catMaybes
