@@ -10,9 +10,9 @@ import Data.Text (Text)
 import Data.Typeable
 import GHC.Generics
 import Mars.Command
-import Mars.Renderable
 import System.IO (hPutStrLn, stderr)
 import Test.QuickCheck
+import Mars.Renderable
 
 newtype Load = Load Text
   deriving (Generic, Show, Eq, Typeable)

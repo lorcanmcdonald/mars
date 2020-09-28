@@ -22,7 +22,7 @@ import Prelude hiding (putStrLn)
 data Set = Set Query Value
   deriving (Generic, Show, Eq, Typeable)
 
-data SetResult = ReplaceDocument Value
+newtype SetResult = ReplaceDocument Value
 
 instance Command Set SetResult where
   evalCommand s (Set query value) = ReplaceDocument newDoc
