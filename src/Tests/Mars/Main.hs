@@ -4,6 +4,7 @@ import Data.Aeson
 import Data.Either (fromRight)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.String.Conv
 import Data.Text (Text)
@@ -33,6 +34,7 @@ tests =
     [ unitTests,
       stateTests,
       queryProperties,
+      parseTests,
       evaluationTests
     ]
 
@@ -45,8 +47,17 @@ queryProperties =
       testProperty "move up shortens" prop_move_up_shorten
     ]
 
-parseCase :: String -> [Operation] -> TestTree
+parseCase :: String -> Operation -> TestTree
 parseCase s q = testCase s $ parser (toS s) @?= Right q
+
+parseTests :: TestTree
+parseTests =
+  testGroup
+    "Parsing examples"
+    [ testCase "cd .." $
+        parser "cd .."
+          @?= Right (OpCd (Cd DefaultLocation))
+    ]
 
 newtype WrappedText = WrappedText Text
   deriving (Show)
@@ -78,7 +89,8 @@ stateTests =
     [ testGroup
         "cd"
         [ test_cd_existing,
-          test_cd_nonexisting
+          test_cd_nonexisting,
+          test_cd_up_one_level
         ],
       testGroup "ls" [test_ls_top_level, test_ls_second_level]
     ]
@@ -110,6 +122,16 @@ test_cd_nonexisting =
     q = fromRight (error "parseQuery test_cd_nonexisting") . parseQuery $ "b"
     oldState = initMarsState "{\"a\": {}}"
 
+test_cd_up_one_level :: TestTree
+test_cd_up_one_level =
+  testCase
+    "cd to parent object"
+    $ newPath @?= DefaultLocation
+  where
+    (ChangePath newPath) = evalCommand oldState (Cd q)
+    q = fromRight (error "parseQuery test_cd_nonexisting") . parseQuery $ ".."
+    oldState = (initMarsState "{\"a\": [1,2]}") {path = Query (Glob (LiteralString "a" :| []) :| [])}
+
 test_ls_top_level :: TestTree
 test_ls_top_level =
   testCase
@@ -140,28 +162,28 @@ unitTests =
     "Unit Tests"
     [ testGroup
         "Parsing Commands"
-        [ parseCase "ls" [OpLs . Ls $ DefaultLocation],
-          parseCase "cat" [OpCat . Cat $ []],
-          parseCase "pwd" [OpPwd Pwd],
-          parseCase "cd" [OpCd . Cd $ DefaultLocation],
+        [ parseCase "ls" (OpLs . Ls $ DefaultLocation),
+          parseCase "cat" (OpCat . Cat $ []),
+          parseCase "pwd" (OpPwd Pwd),
+          parseCase "cd" (OpCd . Cd $ DefaultLocation),
           parseCase
             "ls *"
-            [ OpLs . Ls $
+            ( OpLs . Ls $
                 ( Query . NonEmpty.fromList $
                     [ Glob . NonEmpty.fromList $
                         [AnyCharMultiple]
                     ]
                 )
-            ],
+            ),
           parseCase
             "ls b*"
-            [ OpLs . Ls
+            ( OpLs . Ls
                 $ Query
                   . NonEmpty.fromList
                 $ [ Glob . NonEmpty.fromList $
                       [LiteralString "b", AnyCharMultiple]
                   ]
-            ]
+            )
         ],
       testGroup
         "Parsing Queries"
@@ -238,25 +260,25 @@ testNestedObject = queryDoc q v @?= [toJSON ("Test" :: Text)]
 
 prop_command_parse :: Operation -> Bool
 prop_command_parse (OpCat c) = case parser . render $ c of
-  Right ((OpCat x) : _) -> x == c
+  Right (OpCat x) -> x == c
   _ -> False
 prop_command_parse (OpCd c) = case parser . render $ c of
-  Right ((OpCd x) : _) -> x == c
+  Right (OpCd x) -> x == c
   _ -> False
 prop_command_parse (OpLoad c) = case parser . render $ c of
-  Right ((OpLoad x) : _) -> x == c
+  Right (OpLoad x) -> x == c
   _ -> False
 prop_command_parse (OpLs c) = case parser . render $ c of
-  Right ((OpLs x) : _) -> x == c
+  Right (OpLs x) -> x == c
   _ -> False
 prop_command_parse (OpPwd c) = case parser . render $ c of
-  Right ((OpPwd x) : _) -> x == c
+  Right (OpPwd x) -> x == c
   _ -> False
 prop_command_parse (OpSave c) = case parser . render $ c of
-  Right ((OpSave x) : _) -> x == c
+  Right (OpSave x) -> x == c
   _ -> False
 prop_command_parse (OpSet c) = case parser . render $ c of
-  Right ((OpSet x) : _) -> x == c
+  Right (OpSet x) -> x == c
   _ -> False
 
 prop_query_parse :: Query -> Bool

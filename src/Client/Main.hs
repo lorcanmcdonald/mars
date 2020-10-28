@@ -115,11 +115,10 @@ eval s input = case parser input of
   Left err -> do
     print err
     return s
-  Right [] -> return s
-  Right (OpCat x : _) -> run s x
-  Right (OpCd x : _) -> run s x
-  Right (OpLoad x : _) -> run s x
-  Right (OpLs x : _) -> run s x
-  Right (OpPwd x : _) -> run s x
-  Right (OpSave x : _) -> run s x
-  Right (OpSet x : _) -> run s x
+  Right OpCat x -> run s x
+  Right OpCd x-> run s x
+  Right OpLoad x -> run s x
+  Right OpLs x -> run s x
+  Right OpPwd x -> run s x
+  Right OpSave x -> run s x
+  Right OpSet x -> run s x

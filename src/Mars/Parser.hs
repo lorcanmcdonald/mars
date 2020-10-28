@@ -3,7 +3,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
-module Mars.Parser where
+module Mars.Parser (Operation (..), parser, queryString) where
 
 import Control.Applicative
 import Control.Monad
@@ -21,7 +21,7 @@ import Mars.Command.Ls
 import Mars.Command.Pwd
 import Mars.Command.Save
 import Mars.Command.Set
-import Mars.Query (query, querySeparator)
+import Mars.Query (query)
 import Test.QuickCheck
 import Text.Parsec.Prim (ParsecT)
 import Text.ParserCombinators.Parsec hiding ((<|>))
@@ -48,12 +48,8 @@ instance Arbitrary Operation where
         OpSet <$> arbitrary
       ]
 
-parser :: Text.Text -> Either ParseError [Operation]
-parser l = parse commandLine "" $ toS l
-
--- | Parse a list of commands
-commandLine :: forall u. ParsecT String u Identity [Operation]
-commandLine = (command `sepBy` char '|') <* eof
+parser :: Text.Text -> Either ParseError Operation
+parser l = parse command "" $ toS l
 
 command :: forall u. ParsecT String u Identity Operation
 command =
@@ -76,10 +72,6 @@ command =
 queryString :: forall u. ParsecT String u Identity (String, String)
 queryString = (,) <$> (string "&" *> noEquals) <*> (string "=" *> noSpaces)
 
-namedItem :: forall u. ParsecT String u Identity String
-namedItem =
-  (many1 . noneOf . fmap (head . Text.unpack) $ [querySeparator, " ", "*", "?"])
-    <?> "namedItem"
 
 filename :: forall u. ParsecT String u Identity Text.Text
 filename =
@@ -110,5 +102,3 @@ value =
 
 wspaceSeparated :: forall u. ParsecT String u Identity String
 wspaceSeparated = many1 (noneOf " ") <?> "token"
-
-jsonParser = AesonParser.value
